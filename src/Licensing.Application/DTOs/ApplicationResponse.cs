@@ -9,6 +9,7 @@ public class ApplicationResponse
     public string ReferenceNumber { get; set; } = string.Empty;
     public string ApplicantName { get; set; } = string.Empty;
     public string BusinessName { get; set; } = string.Empty;
+    public string ContactEmail { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty; // Human-readable status for the current persona
     public DateTime CreatedAt { get; set; }
     

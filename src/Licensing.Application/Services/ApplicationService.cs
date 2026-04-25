@@ -28,12 +28,10 @@ public class ApplicationService : IApplicationService
             BusinessName = request.BusinessName,
             ContactEmail = request.ContactEmail,
             DataJson = request.DataJson,
-            // Fixed: Robust unique reference number
             ReferenceNumber = $"LIC-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid().ToString("N")[..6].ToUpper()}",
             Status = ApplicationStatus.ApplicationReceived
         };
 
-        // Fixed: N+1 issue by fetching all documents in one query
         if (request.DocumentIds.Any())
         {
             var documents = await _dbContext.Documents
@@ -48,7 +46,6 @@ public class ApplicationService : IApplicationService
 
         _dbContext.Applications.Add(application);
 
-        // Create Initial Snapshot
         var snapshot = new ApplicationSnapshot
         {
             ApplicationId = application.Id,
@@ -64,7 +61,17 @@ public class ApplicationService : IApplicationService
 
     public async Task<List<ApplicationResponse>> GetMyApplicationsAsync()
     {
-        return await _dbContext.Applications
+        return await GetApplicationResponsesAsync(_dbContext.Applications);
+    }
+
+    public async Task<List<ApplicationResponse>> GetAllApplicationsAsync()
+    {
+        return await GetApplicationResponsesAsync(_dbContext.Applications);
+    }
+
+    private async Task<List<ApplicationResponse>> GetApplicationResponsesAsync(IQueryable<LicenseApplication> query)
+    {
+        return await query
             .OrderByDescending(a => a.CreatedAt)
             .Select(a => new ApplicationResponse
             {
@@ -108,5 +115,49 @@ public class ApplicationService : IApplicationService
                 IsResolved = f.IsResolved
             }).ToList()
         };
+    }
+
+    public async Task ProvideFeedbackAsync(Guid applicationId, ProvideFeedbackRequest request)
+    {
+        var feedback = new Feedback
+        {
+            ApplicationId = applicationId,
+            FieldName = request.FieldName,
+            Comment = request.Comment,
+            OfficerName = "System Officer" // Mocked
+        };
+
+        _dbContext.Feedbacks.Add(feedback);
+        await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task SubmitReviewAsync(Guid applicationId, ReviewApplicationRequest request)
+    {
+        var app = await _dbContext.Applications.FindAsync(applicationId);
+        if (app == null) return;
+
+        app.Status = request.NewStatus;
+        app.UpdatedAt = DateTime.UtcNow;
+
+        // If it's a decision that requires resubmission or is final, we might want to log it
+        // Snapshotting is already done on submission, but we could add one for Officer decision too if needed for audit.
+
+        await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task<List<ApplicationSnapshotResponse>> GetSnapshotsAsync(Guid applicationId)
+    {
+        return await _dbContext.ApplicationSnapshots
+            .Where(s => s.ApplicationId == applicationId)
+            .OrderByDescending(s => s.Version)
+            .Select(s => new ApplicationSnapshotResponse
+            {
+                Id = s.Id,
+                Version = s.Version,
+                DataJson = s.DataJson,
+                SubmittedBy = s.SubmittedBy,
+                CreatedAt = s.CreatedAt
+            })
+            .ToListAsync();
     }
 }

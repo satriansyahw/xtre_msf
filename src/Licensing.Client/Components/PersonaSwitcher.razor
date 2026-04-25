@@ -1,0 +1,30 @@
+@using Licensing.Client.Services
+@inject PersonaService PersonaService
+
+<div class="persona-switcher p-2 border-bottom bg-light d-flex align-items-center justify-content-center">
+    <span class="me-3 fw-bold small text-uppercase text-muted">Active Persona:</span>
+    <div class="btn-group btn-group-sm" role="group">
+        <button type="button" 
+                class="btn @(PersonaService.CurrentPersona == Persona.Operator ? "btn-primary" : "btn-outline-primary")" 
+                @onclick="() => PersonaService.SwitchTo(Persona.Operator)">
+            Operator
+        </button>
+        <button type="button" 
+                class="btn @(PersonaService.CurrentPersona == Persona.Officer ? "btn-dark" : "btn-outline-dark")" 
+                @onclick="() => PersonaService.SwitchTo(Persona.Officer)">
+            Officer
+        </button>
+    </div>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        PersonaService.OnPersonaChanged += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        PersonaService.OnPersonaChanged -= StateHasChanged;
+    }
+}
