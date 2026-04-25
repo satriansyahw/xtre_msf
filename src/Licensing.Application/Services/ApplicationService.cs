@@ -15,6 +15,16 @@ public class ApplicationService : IApplicationService
 {
     private readonly IApplicationDbContext _dbContext;
 
+    // Fixed: Allowed status transitions for Officers
+    private static readonly HashSet<ApplicationStatus> AllowedOfficerDecisions = new()
+    {
+        ApplicationStatus.Approved,
+        ApplicationStatus.Rejected,
+        ApplicationStatus.PendingPreSiteResubmission,
+        ApplicationStatus.PendingPostSiteResubmission,
+        ApplicationStatus.UnderReview
+    };
+
     public ApplicationService(IApplicationDbContext dbContext)
     {
         _dbContext = dbContext;
@@ -28,12 +38,10 @@ public class ApplicationService : IApplicationService
             BusinessName = request.BusinessName,
             ContactEmail = request.ContactEmail,
             DataJson = request.DataJson,
-            // Fixed: Robust unique reference number
             ReferenceNumber = $"LIC-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid().ToString("N")[..6].ToUpper()}",
             Status = ApplicationStatus.ApplicationReceived
         };
 
-        // Fixed: N+1 issue by fetching all documents in one query
         if (request.DocumentIds.Any())
         {
             var documents = await _dbContext.Documents
@@ -48,7 +56,6 @@ public class ApplicationService : IApplicationService
 
         _dbContext.Applications.Add(application);
 
-        // Create Initial Snapshot
         var snapshot = new ApplicationSnapshot
         {
             ApplicationId = application.Id,
@@ -64,7 +71,18 @@ public class ApplicationService : IApplicationService
 
     public async Task<List<ApplicationResponse>> GetMyApplicationsAsync()
     {
-        return await _dbContext.Applications
+        // TODO: Filter by current user when Auth is implemented
+        return await GetApplicationResponsesAsync(_dbContext.Applications);
+    }
+
+    public async Task<List<ApplicationResponse>> GetAllApplicationsAsync()
+    {
+        return await GetApplicationResponsesAsync(_dbContext.Applications);
+    }
+
+    private async Task<List<ApplicationResponse>> GetApplicationResponsesAsync(IQueryable<LicenseApplication> query)
+    {
+        return await query
             .OrderByDescending(a => a.CreatedAt)
             .Select(a => new ApplicationResponse
             {
@@ -72,6 +90,7 @@ public class ApplicationService : IApplicationService
                 ReferenceNumber = a.ReferenceNumber,
                 ApplicantName = a.ApplicantName,
                 BusinessName = a.BusinessName,
+                ContactEmail = a.ContactEmail,
                 Status = a.Status.ToString(),
                 CreatedAt = a.CreatedAt
             })
@@ -93,7 +112,9 @@ public class ApplicationService : IApplicationService
             ReferenceNumber = app.ReferenceNumber,
             ApplicantName = app.ApplicantName,
             BusinessName = app.BusinessName,
+            ContactEmail = app.ContactEmail, // Fixed: Added ContactEmail
             Status = app.Status.ToString(),
+            DataJson = app.DataJson, // Fixed: Added DataJson
             CreatedAt = app.CreatedAt,
             Documents = app.Documents.Select(d => new DocumentResponse
             {
@@ -108,5 +129,67 @@ public class ApplicationService : IApplicationService
                 IsResolved = f.IsResolved
             }).ToList()
         };
+    }
+
+    public async Task ProvideFeedbackAsync(Guid applicationId, ProvideFeedbackRequest request)
+    {
+        var feedback = new Feedback
+        {
+            ApplicationId = applicationId,
+            FieldName = request.FieldName,
+            Comment = request.Comment,
+            OfficerName = "System Officer" // Mocked
+        };
+
+        _dbContext.Feedbacks.Add(feedback);
+        await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task SubmitReviewAsync(Guid applicationId, ReviewApplicationRequest request)
+    {
+        // Fixed: Validate status transitions
+        if (!AllowedOfficerDecisions.Contains(request.NewStatus))
+        {
+            throw new InvalidOperationException($"Status '{request.NewStatus}' is not a valid officer decision.");
+        }
+
+        var app = await _dbContext.Applications.FindAsync(applicationId);
+        if (app == null)
+        {
+            throw new KeyNotFoundException($"Application {applicationId} not found.");
+        }
+
+        app.Status = request.NewStatus;
+        app.UpdatedAt = DateTime.UtcNow;
+
+        // Fixed: Persist GlobalComment
+        if (!string.IsNullOrWhiteSpace(request.GlobalComment))
+        {
+            _dbContext.Feedbacks.Add(new Feedback
+            {
+                ApplicationId = applicationId,
+                FieldName = "Overall Decision",
+                Comment = request.GlobalComment,
+                OfficerName = "System Officer"
+            });
+        }
+
+        await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task<List<ApplicationSnapshotResponse>> GetSnapshotsAsync(Guid applicationId)
+    {
+        return await _dbContext.ApplicationSnapshots
+            .Where(s => s.ApplicationId == applicationId)
+            .OrderByDescending(s => s.Version)
+            .Select(s => new ApplicationSnapshotResponse
+            {
+                Id = s.Id,
+                Version = s.Version,
+                DataJson = s.DataJson,
+                SubmittedBy = s.SubmittedBy,
+                CreatedAt = s.CreatedAt
+            })
+            .ToListAsync();
     }
 }

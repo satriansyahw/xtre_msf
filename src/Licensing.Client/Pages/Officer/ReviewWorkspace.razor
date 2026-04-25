@@ -1,0 +1,261 @@
+@page "/officer/review/{Id:guid}"
+@using Licensing.Application.DTOs
+@using Licensing.Domain.Enums
+@using System.Text.Json
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <button class="btn btn-outline-secondary" @onclick='() => Navigation.NavigateTo("/officer")'>
+            <i class="bi bi-arrow-left"></i> Back to Queue
+        </button>
+        <h2>Review Workspace: @app?.ReferenceNumber</h2>
+        <div></div>
+    </div>
+
+    @if (app == null)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger mb-4 d-flex justify-content-between align-items-center">
+                <span>@errorMessage</span>
+                <button class="btn-close" @onclick='() => errorMessage = ""'></button>
+            </div>
+        }
+
+        <div class="row">
+            <!-- Left Panel: Application Data -->
+            <div class="col-md-7">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">Application Data</h5>
+                    </div>
+                    <div class="card-body">
+                        <dl class="row">
+                            <dt class="col-sm-4">Applicant</dt>
+                            <dd class="col-sm-8">@app.ApplicantName</dd>
+
+                            <dt class="col-sm-4">Business</dt>
+                            <dd class="col-sm-8">@app.BusinessName</dd>
+
+                            <dt class="col-sm-4">Email</dt>
+                            <dd class="col-sm-8">@app.ContactEmail</dd>
+                        </dl>
+                        <hr />
+                        <h6>Detailed Data (JSON)</h6>
+                        <pre class="bg-light p-3 border rounded">@app.DataJsonFormatted</pre>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">Documents & AI Check</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="ps-3">File Name</th>
+                                    <th>AI Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var doc in app.Documents)
+                                {
+                                    <tr>
+                                        <td class="ps-3">@doc.FileName</td>
+                                        <td>
+                                            <span class="badge @GetAIStatusBadgeClass(doc.AIStatus)">@doc.AIStatus</span>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-link btn-sm p-0">View</button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Review & Feedback -->
+            <div class="col-md-5">
+                <div class="card shadow-sm sticky-top" style="top: 20px;">
+                    <div class="card-header bg-dark text-white">
+                        <h5 class="mb-0">Officer Decision Panel</h5>
+                    </div>
+                    <div class="card-body">
+                        <h6>Add Field Feedback</h6>
+                        <div class="input-group mb-3">
+                            <select class="form-select form-select-sm" @bind="newFeedback.FieldName">
+                                <option value="">Select field...</option>
+                                <option value="ApplicantName">Applicant Name</option>
+                                <option value="BusinessName">Business Name</option>
+                                <option value="ContactEmail">Contact Email</option>
+                                <option value="BusinessAddress">Business Address</option>
+                                <option value="Documents">Documents</option>
+                            </select>
+                            <input type="text" class="form-control form-control-sm w-50" placeholder="Comment" @bind="newFeedback.Comment" />
+                            <button class="btn btn-sm btn-outline-primary" @onclick="AddFeedback">Add</button>
+                        </div>
+
+                        @if (feedbacks.Any())
+                        {
+                            <div class="mb-4">
+                                @foreach (var fb in feedbacks)
+                                {
+                                    <div class="alert alert-secondary py-1 px-2 mb-1 small d-flex justify-content-between">
+                                        <span><strong>@fb.FieldName:</strong> @fb.Comment</span>
+                                        <button type="button" class="btn-close" style="font-size: 0.5rem;" @onclick="() => feedbacks.Remove(fb)"></button>
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        <hr />
+
+                        <h6>Final Decision</h6>
+                        <div class="mb-3">
+                            <label class="form-label small">Overall Internal Note</label>
+                            <textarea class="form-control" rows="3" @bind="globalComment"></textarea>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-success" @onclick="() => SubmitDecision(ApplicationStatus.Approved)" disabled="@isSubmitting">
+                                Approve Application
+                            </button>
+                            <button class="btn btn-warning" @onclick="() => SubmitDecision(ApplicationStatus.PendingPreSiteResubmission)" disabled="@isSubmitting">
+                                Request Resubmission
+                            </button>
+                            <button class="btn btn-danger" @onclick="() => SubmitDecision(ApplicationStatus.Rejected)" disabled="@isSubmitting">
+                                Reject Application
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private ApplicationDetailExtended? app;
+    private ProvideFeedbackRequest newFeedback = new();
+    private List<ProvideFeedbackRequest> feedbacks = new();
+    private string globalComment = "";
+    private string errorMessage = "";
+    private bool isSubmitting = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try 
+        {
+            var raw = await Http.GetFromJsonAsync<ApplicationResponse>($"api/applications/{Id}");
+            if (raw != null)
+            {
+                app = new ApplicationDetailExtended(raw);
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Failed to load application data: " + ex.Message;
+        }
+    }
+
+    private async Task AddFeedback()
+    {
+        if (string.IsNullOrEmpty(newFeedback.FieldName) || string.IsNullOrEmpty(newFeedback.Comment)) return;
+        
+        var response = await Http.PostAsJsonAsync($"api/review/{Id}/feedback", newFeedback);
+        if (response.IsSuccessStatusCode)
+        {
+            feedbacks.Add(new ProvideFeedbackRequest { FieldName = newFeedback.FieldName, Comment = newFeedback.Comment });
+            newFeedback = new();
+        }
+        else 
+        {
+            errorMessage = "Failed to save feedback: " + await response.Content.ReadAsStringAsync();
+        }
+    }
+
+    private async Task SubmitDecision(ApplicationStatus status)
+    {
+        isSubmitting = true;
+        errorMessage = "";
+        
+        var request = new ReviewApplicationRequest
+        {
+            NewStatus = status,
+            GlobalComment = globalComment
+        };
+
+        var response = await Http.PostAsJsonAsync($"api/review/{Id}/decision", request);
+        if (response.IsSuccessStatusCode)
+        {
+            Navigation.NavigateTo("/officer");
+        }
+        else
+        {
+            isSubmitting = false;
+            errorMessage = "Decision failed: " + await response.Content.ReadAsStringAsync();
+        }
+    }
+
+    private string GetAIStatusBadgeClass(string status)
+    {
+        return status switch
+        {
+            "Verified" => "bg-success",
+            "Flagged" => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+
+    private class ApplicationDetailExtended : ApplicationResponse
+    {
+        public ApplicationDetailExtended(ApplicationResponse baseApp)
+        {
+            Id = baseApp.Id;
+            ReferenceNumber = baseApp.ReferenceNumber;
+            ApplicantName = baseApp.ApplicantName;
+            BusinessName = baseApp.BusinessName;
+            ContactEmail = baseApp.ContactEmail;
+            Status = baseApp.Status;
+            DataJson = baseApp.DataJson;
+            CreatedAt = baseApp.CreatedAt;
+            Documents = baseApp.Documents;
+            Feedbacks = baseApp.Feedbacks;
+        }
+
+        // Fixed: Use real DataJson from the application
+        public string DataJsonFormatted 
+        {
+            get 
+            {
+                try 
+                {
+                    var doc = JsonDocument.Parse(DataJson ?? "{}");
+                    return JsonSerializer.Serialize(doc, new JsonSerializerOptions { WriteIndented = true });
+                }
+                catch 
+                {
+                    return DataJson ?? "{}";
+                }
+            }
+        }
+    }
+}
