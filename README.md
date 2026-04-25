@@ -100,8 +100,8 @@ The system includes E2E tests to verify persona switching and application submis
 
 ### Tools & Models
 - **Antigravity**: Used as the main orchestration tool for workflows, planning, coding, and execution.
-- **Gemini 1.5 Pro**: Used for most tasks (planning, coding, issue generation).
-- **Claude 3.5 Sonnet**: Used specifically for Pull Request reviews to provide critical and detailed feedback.
+- **Gemini 3 Flash**: Used for most tasks (planning, coding, issue generation).
+- **Gemini 3.1 Pro/Claude Opus**: Used specifically for Pull Request reviews to provide critical and detailed feedback.
 
 ### How AI Was Used
 AI was an integral assistant across the full development lifecycle:
@@ -119,23 +119,44 @@ AI was an integral assistant across the full development lifecycle:
 - **Testing**:
   - Functional validation and unit testing.
   - Automated End-to-End (E2E) testing using Playwright.
+  - Manual testing.
 - **PR Workflow**:
-  - Automated PR creation and cross-model PR reviews (Claude Opus).
+  - Automated PR creation and cross-model PR reviews (Claude Opus/Gemini 3.1 Pro).
   - Iterative bug fixing based on detailed review feedback.
 
 ### Example Prompts / Instructions
-Key instructions given to the AI during the process:
-- **Strict Control**: "Don't code unless explicitly asked", "If create-issue -> only create issue, no coding".
-- **Planning**: "Create implementation plan for Phase X", "Translate plan to English and submit as GitHub issue".
-- **Review**: "Fix all issues identified in this PR review".
-- **Testing**: "Run Playwright, test all requirements, ensure API is running before testing to avoid port refused errors".
+Key instructions and interaction patterns used during the development lifecycle:
+
+- **Workflow Initiation**:
+  - `create workflow @task-breakdown.md`
+  - `i want to make use case 1 & 2 using C# API and Blazor with local db, use @task-breakdown.md`
+- **Strict Execution Control**:
+  - `"don’t code unless explicitly asked"`
+  - `"if create-issue -> only create issue, no coding"`
+- **Planning & GitHub Integration**:
+  - `use create-issue to create issue.md for Phase 1: Setup & Infrastructure`
+  - `translate plan to English -> submit as GitHub issue`
+  - `use create-issue -> Phase 2, 3, 4 -> submit all as github issues`
+- **Critical Review Cycle**:
+  - `switch model -> Claude Opus`
+  - `use @review-pr.md review pr <link>`
+  - `fix all issues from this PR review`
+- **Testing & Stability**:
+  - `run Playwright, test all requirements, no skip`
+  - `"ensure API is running before testing (avoid port refused)"`
+  - `separated API & FE ports`
+- **Validation & Cleanup**:
+  - `validate against requirements (Senior_SWE_JD.pdf)`
+  - `cleanup unused code (weather, about, etc)`
+  - `check persona toggle issue`
+  - `create guidance.md`
 
 ### Validation & Review Process
 All AI-generated outputs were subject to human oversight:
 - **Manual Review**: Code and plans were reviewed before execution.
 - **Cross-Model Verification**: Utilizing different models for development vs. review.
 - **Local Validation**: Manual verification of Swagger endpoints and UI behavior.
-- **Testing**: Final validation via a full suite of Playwright E2E tests.
+- **Testing**: Final validation via a full suite of Playwright E2E tests adn manual testing
 
 ### Corrections & Iterations
 The process involved several iterative cycles to ensure quality:
