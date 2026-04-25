@@ -1,6 +1,7 @@
 @page "/officer/review/{Id:guid}"
 @using Licensing.Application.DTOs
 @using Licensing.Domain.Enums
+@using System.Text.Json
 @inject HttpClient Http
 @inject NavigationManager Navigation
 
@@ -21,6 +22,14 @@
     }
     else
     {
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger mb-4 d-flex justify-content-between align-items-center">
+                <span>@errorMessage</span>
+                <button class="btn-close" @onclick='() => errorMessage = ""'></button>
+            </div>
+        }
+
         <div class="row">
             <!-- Left Panel: Application Data -->
             <div class="col-md-7">
@@ -120,13 +129,13 @@
                         </div>
 
                         <div class="d-grid gap-2">
-                            <button class="btn btn-success" @onclick="() => SubmitDecision(ApplicationStatus.Approved)">
+                            <button class="btn btn-success" @onclick="() => SubmitDecision(ApplicationStatus.Approved)" disabled="@isSubmitting">
                                 Approve Application
                             </button>
-                            <button class="btn btn-warning" @onclick="() => SubmitDecision(ApplicationStatus.PendingPreSiteResubmission)">
+                            <button class="btn btn-warning" @onclick="() => SubmitDecision(ApplicationStatus.PendingPreSiteResubmission)" disabled="@isSubmitting">
                                 Request Resubmission
                             </button>
-                            <button class="btn btn-danger" @onclick="() => SubmitDecision(ApplicationStatus.Rejected)">
+                            <button class="btn btn-danger" @onclick="() => SubmitDecision(ApplicationStatus.Rejected)" disabled="@isSubmitting">
                                 Reject Application
                             </button>
                         </div>
@@ -143,6 +152,8 @@
     private ProvideFeedbackRequest newFeedback = new();
     private List<ProvideFeedbackRequest> feedbacks = new();
     private string globalComment = "";
+    private string errorMessage = "";
+    private bool isSubmitting = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -151,10 +162,17 @@
 
     private async Task LoadData()
     {
-        var raw = await Http.GetFromJsonAsync<ApplicationResponse>($"api/applications/{Id}");
-        if (raw != null)
+        try 
         {
-            app = new ApplicationDetailExtended(raw);
+            var raw = await Http.GetFromJsonAsync<ApplicationResponse>($"api/applications/{Id}");
+            if (raw != null)
+            {
+                app = new ApplicationDetailExtended(raw);
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Failed to load application data: " + ex.Message;
         }
     }
 
@@ -162,13 +180,23 @@
     {
         if (string.IsNullOrEmpty(newFeedback.FieldName) || string.IsNullOrEmpty(newFeedback.Comment)) return;
         
-        await Http.PostAsJsonAsync($"api/review/{Id}/feedback", newFeedback);
-        feedbacks.Add(new ProvideFeedbackRequest { FieldName = newFeedback.FieldName, Comment = newFeedback.Comment });
-        newFeedback = new();
+        var response = await Http.PostAsJsonAsync($"api/review/{Id}/feedback", newFeedback);
+        if (response.IsSuccessStatusCode)
+        {
+            feedbacks.Add(new ProvideFeedbackRequest { FieldName = newFeedback.FieldName, Comment = newFeedback.Comment });
+            newFeedback = new();
+        }
+        else 
+        {
+            errorMessage = "Failed to save feedback: " + await response.Content.ReadAsStringAsync();
+        }
     }
 
     private async Task SubmitDecision(ApplicationStatus status)
     {
+        isSubmitting = true;
+        errorMessage = "";
+        
         var request = new ReviewApplicationRequest
         {
             NewStatus = status,
@@ -179,6 +207,11 @@
         if (response.IsSuccessStatusCode)
         {
             Navigation.NavigateTo("/officer");
+        }
+        else
+        {
+            isSubmitting = false;
+            errorMessage = "Decision failed: " + await response.Content.ReadAsStringAsync();
         }
     }
 
@@ -202,11 +235,27 @@
             BusinessName = baseApp.BusinessName;
             ContactEmail = baseApp.ContactEmail;
             Status = baseApp.Status;
+            DataJson = baseApp.DataJson;
             CreatedAt = baseApp.CreatedAt;
             Documents = baseApp.Documents;
             Feedbacks = baseApp.Feedbacks;
         }
 
-        public string DataJsonFormatted => "{ \"BusinessAddress\": \"123 Mock St\", \"EmployeeCount\": 15 }"; // Mocked for now
+        // Fixed: Use real DataJson from the application
+        public string DataJsonFormatted 
+        {
+            get 
+            {
+                try 
+                {
+                    var doc = JsonDocument.Parse(DataJson ?? "{}");
+                    return JsonSerializer.Serialize(doc, new JsonSerializerOptions { WriteIndented = true });
+                }
+                catch 
+                {
+                    return DataJson ?? "{}";
+                }
+            }
+        }
     }
 }

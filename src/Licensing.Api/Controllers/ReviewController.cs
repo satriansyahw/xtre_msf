@@ -34,8 +34,19 @@ public class ReviewController : ControllerBase
     [HttpPost("{id}/decision")]
     public async Task<IActionResult> SubmitDecision(Guid id, [FromBody] ReviewApplicationRequest request)
     {
-        await _applicationService.SubmitReviewAsync(id, request);
-        return Ok();
+        try 
+        {
+            await _applicationService.SubmitReviewAsync(id, request);
+            return Ok();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpGet("{id}/snapshots")]

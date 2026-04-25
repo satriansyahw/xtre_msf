@@ -15,6 +15,16 @@ public class ApplicationService : IApplicationService
 {
     private readonly IApplicationDbContext _dbContext;
 
+    // Fixed: Allowed status transitions for Officers
+    private static readonly HashSet<ApplicationStatus> AllowedOfficerDecisions = new()
+    {
+        ApplicationStatus.Approved,
+        ApplicationStatus.Rejected,
+        ApplicationStatus.PendingPreSiteResubmission,
+        ApplicationStatus.PendingPostSiteResubmission,
+        ApplicationStatus.UnderReview
+    };
+
     public ApplicationService(IApplicationDbContext dbContext)
     {
         _dbContext = dbContext;
@@ -61,6 +71,7 @@ public class ApplicationService : IApplicationService
 
     public async Task<List<ApplicationResponse>> GetMyApplicationsAsync()
     {
+        // TODO: Filter by current user when Auth is implemented
         return await GetApplicationResponsesAsync(_dbContext.Applications);
     }
 
@@ -79,6 +90,7 @@ public class ApplicationService : IApplicationService
                 ReferenceNumber = a.ReferenceNumber,
                 ApplicantName = a.ApplicantName,
                 BusinessName = a.BusinessName,
+                ContactEmail = a.ContactEmail,
                 Status = a.Status.ToString(),
                 CreatedAt = a.CreatedAt
             })
@@ -100,7 +112,9 @@ public class ApplicationService : IApplicationService
             ReferenceNumber = app.ReferenceNumber,
             ApplicantName = app.ApplicantName,
             BusinessName = app.BusinessName,
+            ContactEmail = app.ContactEmail, // Fixed: Added ContactEmail
             Status = app.Status.ToString(),
+            DataJson = app.DataJson, // Fixed: Added DataJson
             CreatedAt = app.CreatedAt,
             Documents = app.Documents.Select(d => new DocumentResponse
             {
@@ -133,14 +147,32 @@ public class ApplicationService : IApplicationService
 
     public async Task SubmitReviewAsync(Guid applicationId, ReviewApplicationRequest request)
     {
+        // Fixed: Validate status transitions
+        if (!AllowedOfficerDecisions.Contains(request.NewStatus))
+        {
+            throw new InvalidOperationException($"Status '{request.NewStatus}' is not a valid officer decision.");
+        }
+
         var app = await _dbContext.Applications.FindAsync(applicationId);
-        if (app == null) return;
+        if (app == null)
+        {
+            throw new KeyNotFoundException($"Application {applicationId} not found.");
+        }
 
         app.Status = request.NewStatus;
         app.UpdatedAt = DateTime.UtcNow;
 
-        // If it's a decision that requires resubmission or is final, we might want to log it
-        // Snapshotting is already done on submission, but we could add one for Officer decision too if needed for audit.
+        // Fixed: Persist GlobalComment
+        if (!string.IsNullOrWhiteSpace(request.GlobalComment))
+        {
+            _dbContext.Feedbacks.Add(new Feedback
+            {
+                ApplicationId = applicationId,
+                FieldName = "Overall Decision",
+                Comment = request.GlobalComment,
+                OfficerName = "System Officer"
+            });
+        }
 
         await _dbContext.SaveChangesAsync();
     }
