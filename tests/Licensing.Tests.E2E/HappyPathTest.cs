@@ -8,7 +8,7 @@ namespace Licensing.Tests.E2E;
 [TestFixture]
 public class HappyPathTest : PageTest
 {
-    private const string BaseUrl = "http://localhost:5001";
+    private string BaseUrl => Environment.GetEnvironmentVariable("E2E_BASE_URL") ?? "http://localhost:5001";
 
     [Test]
     public async Task FullApplicationFlow_ShouldSucceed()
