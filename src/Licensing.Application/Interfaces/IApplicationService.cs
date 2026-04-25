@@ -14,4 +14,5 @@ public interface IApplicationService
     Task ProvideFeedbackAsync(Guid applicationId, ProvideFeedbackRequest request);
     Task SubmitReviewAsync(Guid applicationId, ReviewApplicationRequest request);
     Task<List<ApplicationSnapshotResponse>> GetSnapshotsAsync(Guid applicationId);
+    Task ResubmitApplicationAsync(Guid applicationId, SubmitApplicationRequest request);
 }

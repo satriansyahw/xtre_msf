@@ -84,6 +84,7 @@
                         </table>
                     </div>
                 </div>
+                <VersionDiffViewer Snapshots="snapshots" />
             </div>
 
             <!-- Right Panel: Review & Feedback -->
@@ -149,6 +150,7 @@
 @code {
     [Parameter] public Guid Id { get; set; }
     private ApplicationDetailExtended? app;
+    private List<ApplicationSnapshotResponse>? snapshots;
     private ProvideFeedbackRequest newFeedback = new();
     private List<ProvideFeedbackRequest> feedbacks = new();
     private string globalComment = "";
@@ -169,6 +171,8 @@
             {
                 app = new ApplicationDetailExtended(raw);
             }
+
+            snapshots = await Http.GetFromJsonAsync<List<ApplicationSnapshotResponse>>($"api/review/{Id}/snapshots");
         }
         catch (Exception ex)
         {

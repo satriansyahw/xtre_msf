@@ -192,4 +192,60 @@ public class ApplicationService : IApplicationService
             })
             .ToListAsync();
     }
+
+    public async Task ResubmitApplicationAsync(Guid applicationId, SubmitApplicationRequest request)
+    {
+        var app = await _dbContext.Applications
+            .Include(a => a.Documents)
+            .FirstOrDefaultAsync(a => a.Id == applicationId);
+
+        if (app == null) throw new KeyNotFoundException($"Application {applicationId} not found.");
+
+        // Update application data
+        app.ApplicantName = request.ApplicantName;
+        app.BusinessName = request.BusinessName;
+        app.ContactEmail = request.ContactEmail;
+        app.DataJson = request.DataJson;
+        app.UpdatedAt = DateTime.UtcNow;
+
+        // Determine next status
+        app.Status = app.Status == ApplicationStatus.PendingPreSiteResubmission 
+            ? ApplicationStatus.PreSiteResubmitted 
+            : ApplicationStatus.PostSiteClarificationResubmitted;
+
+        // Sync documents
+        if (request.DocumentIds.Any())
+        {
+            var currentDocIds = app.Documents.Select(d => d.Id).ToList();
+            var toAdd = request.DocumentIds.Except(currentDocIds).ToList();
+
+            if (toAdd.Any())
+            {
+                var newDocs = await _dbContext.Documents
+                    .Where(d => toAdd.Contains(d.Id))
+                    .ToListAsync();
+                
+                foreach (var doc in newDocs)
+                {
+                    doc.ApplicationId = applicationId;
+                }
+            }
+        }
+
+        // Get latest version for snapshot
+        var latestVersion = await _dbContext.ApplicationSnapshots
+            .Where(s => s.ApplicationId == applicationId)
+            .MaxAsync(s => s.Version);
+
+        var snapshot = new ApplicationSnapshot
+        {
+            ApplicationId = applicationId,
+            Version = latestVersion + 1,
+            DataJson = request.DataJson,
+            SubmittedBy = "Operator (Resubmission)"
+        };
+        _dbContext.ApplicationSnapshots.Add(snapshot);
+
+        await _dbContext.SaveChangesAsync();
+    }
 }
