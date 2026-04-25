@@ -13,7 +13,6 @@
 - [x] Implement Mock AI Verification Service
 - [x] Build Operator Dashboard (Application List)
 - [x] Build Guided Submission Wizard (Multi-step)
-- [ ] Build Resubmission Portal (Highlighting flagged items)
 
 ## Phase 3: Use Case 2 (Officer Workflow)
 - [x] Implement Review Queue (Officer Dashboard)
@@ -25,7 +24,10 @@
 - [x] Implement Audit Trail and Status History view
 
 ## Phase 4: Polish & Validation
-- [ ] Persona Switcher (UI Toggle)
-- [ ] Real-time status updates (Polling/Mock)
-- [ ] Update README.md with AI Usage and Setup instructions
-- [ ] Final Verification against JD requirements
+- [x] Resubmission Portal (Operator addressing feedback)
+- [x] Version Comparison UI (Officer side-by-side diff)
+- [x] Persona Switcher with persistence (localStorage)
+- [x] UI/UX Polish (Inter Font, Micro-animations, Cards)
+- [x] Automated Testing (xUnit & Playwright)
+- [x] Final Documentation (README.md, SCOPE.md, AI Disclosure)
+- [x] Final Verification against JD requirements
