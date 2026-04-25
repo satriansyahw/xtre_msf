@@ -30,48 +30,104 @@
                 </div>
 
                 <EditForm Model="request" OnValidSubmit="HandleResubmit">
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Applicant Name</label>
-                            <InputText class="form-control" @bind-Value="request.ApplicantName" />
+                    <div class="accordion mb-4" id="resubmitAccordion">
+                        <!-- Section 1: Applicant Identity -->
+                        <div class="accordion-item shadow-sm border-0 mb-2">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button @(IsSectionFlagged("Identity") ? "" : "collapsed")" type="button" data-bs-toggle="collapse" data-bs-target="#collapseIdentity">
+                                    <i class="bi bi-person-badge me-2"></i> Applicant Identity
+                                    @if (IsSectionFlagged("Identity"))
+                                    {
+                                        <span class="badge bg-danger ms-2">Flagged</span>
+                                    }
+                                </button>
+                            </h2>
+                            <div id="collapseIdentity" class="accordion-collapse collapse @(IsSectionFlagged("Identity") ? "show" : "")" data-bs-parent="#resubmitAccordion">
+                                <div class="accordion-body bg-light bg-opacity-10">
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-bold">Applicant Name</label>
+                                            <InputText class="form-control @(IsFieldFlagged("ApplicantName") ? "border-danger bg-danger bg-opacity-10" : "")" @bind-Value="request.ApplicantName" />
+                                            @if (IsFieldFlagged("ApplicantName")) { <small class="text-danger">@GetFieldFeedback("ApplicantName")</small> }
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-bold">Business Name</label>
+                                            <InputText class="form-control @(IsFieldFlagged("BusinessName") ? "border-danger bg-danger bg-opacity-10" : "")" @bind-Value="request.BusinessName" />
+                                            @if (IsFieldFlagged("BusinessName")) { <small class="text-danger">@GetFieldFeedback("BusinessName")</small> }
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Contact Email</label>
+                                        <InputText class="form-control @(IsFieldFlagged("ContactEmail") ? "border-danger bg-danger bg-opacity-10" : "")" @bind-Value="request.ContactEmail" />
+                                        @if (IsFieldFlagged("ContactEmail")) { <small class="text-danger">@GetFieldFeedback("ContactEmail")</small> }
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Business Name</label>
-                            <InputText class="form-control" @bind-Value="request.BusinessName" />
-                        </div>
-                    </div>
 
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Contact Email</label>
-                        <InputText class="form-control" @bind-Value="request.ContactEmail" />
-                    </div>
-
-                    <div class="row mb-3">
-                        <div class="col-md-8">
-                            <label class="form-label fw-bold">Business Address</label>
-                            <input type="text" class="form-control" @bind="businessAddress" />
+                        <!-- Section 2: Operational Details -->
+                        <div class="accordion-item shadow-sm border-0 mb-2">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button @(IsSectionFlagged("Operational") ? "" : "collapsed")" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOps">
+                                    <i class="bi bi-geo-alt me-2"></i> Operational Details
+                                    @if (IsSectionFlagged("Operational"))
+                                    {
+                                        <span class="badge bg-danger ms-2">Flagged</span>
+                                    }
+                                </button>
+                            </h2>
+                            <div id="collapseOps" class="accordion-collapse collapse @(IsSectionFlagged("Operational") ? "show" : "")" data-bs-parent="#resubmitAccordion">
+                                <div class="accordion-body bg-light bg-opacity-10">
+                                    <div class="row mb-3">
+                                        <div class="col-md-8">
+                                            <label class="form-label fw-bold">Business Address</label>
+                                            <input type="text" class="form-control @(IsFieldFlagged("BusinessAddress") ? "border-danger bg-danger bg-opacity-10" : "")" @bind="businessAddress" />
+                                            @if (IsFieldFlagged("BusinessAddress")) { <small class="text-danger">@GetFieldFeedback("BusinessAddress")</small> }
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label fw-bold">Employee Count</label>
+                                            <input type="number" class="form-control @(IsFieldFlagged("EmployeeCount") ? "border-danger bg-danger bg-opacity-10" : "")" @bind="employeeCount" />
+                                            @if (IsFieldFlagged("EmployeeCount")) { <small class="text-danger">@GetFieldFeedback("EmployeeCount")</small> }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold">Employee Count</label>
-                            <input type="number" class="form-control" @bind="employeeCount" />
-                        </div>
-                    </div>
 
-                    <div class="mb-4">
-                        <label class="form-label fw-bold">Additional Documents</label>
-                        <InputFile class="form-control" OnChange="HandleFileSelected" multiple />
-                        @if (uploadedDocuments.Any())
-                        {
-                            <ul class="list-group mt-2">
-                                @foreach (var doc in uploadedDocuments)
-                                {
-                                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                                        @doc.FileName
-                                        <span class="badge bg-success">Ready</span>
-                                    </li>
-                                }
-                            </ul>
-                        }
+                        <!-- Section 3: Documentation -->
+                        <div class="accordion-item shadow-sm border-0 mb-2">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button @(IsFieldFlagged("Documents") ? "" : "collapsed")" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDocs">
+                                    <i class="bi bi-file-earmark-arrow-up me-2"></i> Documentation
+                                    @if (IsFieldFlagged("Documents"))
+                                    {
+                                        <span class="badge bg-danger ms-2">Flagged</span>
+                                    }
+                                </button>
+                            </h2>
+                            <div id="collapseDocs" class="accordion-collapse collapse @(IsFieldFlagged("Documents") ? "show" : "")" data-bs-parent="#resubmitAccordion">
+                                <div class="accordion-body bg-light bg-opacity-10">
+                                    <div class="mb-4">
+                                        <label class="form-label fw-bold">Additional Documents</label>
+                                        <InputFile class="form-control @(IsFieldFlagged("Documents") ? "border-danger bg-danger bg-opacity-10" : "")" OnChange="HandleFileSelected" multiple />
+                                        @if (IsFieldFlagged("Documents")) { <small class="text-danger">@GetFieldFeedback("Documents")</small> }
+                                        
+                                        @if (uploadedDocuments.Any())
+                                        {
+                                            <ul class="list-group mt-2">
+                                                @foreach (var doc in uploadedDocuments)
+                                                {
+                                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                        @doc.FileName
+                                                        <span class="badge bg-success">Ready</span>
+                                                    </li>
+                                                }
+                                            </ul>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="d-flex justify-content-end gap-2 border-top pt-3">
@@ -121,6 +177,22 @@
             }
             catch { }
         }
+    }
+
+    private bool IsFieldFlagged(string fieldName) => 
+        app?.Feedbacks?.Any(f => f.FieldName == fieldName && !f.IsResolved) ?? false;
+
+    private string GetFieldFeedback(string fieldName) => 
+        app?.Feedbacks?.FirstOrDefault(f => f.FieldName == fieldName && !f.IsResolved)?.Comment ?? "";
+
+    private bool IsSectionFlagged(string section)
+    {
+        return section switch
+        {
+            "Identity" => IsFieldFlagged("ApplicantName") || IsFieldFlagged("BusinessName") || IsFieldFlagged("ContactEmail"),
+            "Operational" => IsFieldFlagged("BusinessAddress") || IsFieldFlagged("EmployeeCount"),
+            _ => false
+        };
     }
 
     private async Task HandleFileSelected(InputFileChangeEventArgs e)
