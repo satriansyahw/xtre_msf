@@ -1,11 +1,11 @@
 # Task List: Regulatory and Licensing Platform (Use Case 1 & 2)
 
 ## Phase 1: Setup & Infrastructure
-- [ ] Initialize Clean Architecture solution and projects
-- [ ] Setup SQLite and Entity Framework Core
-- [ ] Configure Local File Storage path in appsettings.json
-- [ ] Create Domain Entities (Application, Snapshot, Document, Feedback)
-- [ ] Basic API setup and Swagger configuration
+- [x] Initialize Clean Architecture solution and projects
+- [x] Setup SQLite and Entity Framework Core
+- [x] Configure Local File Storage path in appsettings.json
+- [x] Create Domain Entities (Application, Snapshot, Document, Feedback)
+- [x] Basic API setup and Swagger configuration
 
 ## Phase 2: Use Case 1 (Operator Workflow)
 - [ ] Implement Application Submission API (with Snapshotting)
