@@ -22,6 +22,8 @@ A modern, full-stack regulatory platform built with **.NET 10** and **Blazor Web
 - **Persistence**: SQLite with Entity Framework Core (Code First).
 - **Testing**: xUnit for Business Logic, Playwright for E2E flows.
 - **Architecture**: Clean Architecture (Domain-Driven Design principles).
+- **Validation**: Data Annotations (Backend) and EditForm/Manual Validation (Frontend).
+- **Error Handling**: Comprehensive UI alerts and logical state-machine protection.
 
 ---
 
@@ -171,6 +173,19 @@ The process involved several iterative cycles to ensure quality:
 
 ### Key Takeaway
 AI significantly improved development speed, plan clarity, and test coverage. However, **human validation was essential** to ensure production-ready correctness, completeness, and adherence to the specific assessment requirements.
+
+---
+
+## 🛡️ Error Handling & Validation
+
+### Backend Validation
+- **Data Annotations**: All DTOs (`SubmitApplicationRequest`, `ProvideFeedbackRequest`, etc.) are decorated with validation attributes (`[Required]`, `[EmailAddress]`, `[StringLength]`).
+- **State Machine Protection**: The `ApplicationService` enforces strict status transition rules, preventing invalid state changes even if bypassed via API calls.
+
+### Frontend Reliability
+- **Input Masking**: Wizards and forms use real-time validation to prevent navigation if mandatory fields are missing.
+- **Visual Feedback**: Global error handling in `SubmitApplication` and `ReviewWorkspace` captures API failures and displays user-friendly alerts.
+- **Resilient Polling**: Async document verification includes retry logic to handle temporary network fluctuations during status polling.
 
 ---
 
