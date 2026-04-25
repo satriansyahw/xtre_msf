@@ -1,0 +1,91 @@
+@page "/operator"
+@using Licensing.Application.DTOs
+@using Licensing.Client.Services
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>My Applications</h2>
+        <button class="btn btn-primary" @onclick='() => Navigation.NavigateTo("/operator/submit")'>
+            <i class="bi bi-plus-lg"></i> New Application
+        </button>
+    </div>
+
+    @if (applications == null)
+    {
+        <div class="d-flex justify-content-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (!applications.Any())
+    {
+        <div class="alert alert-info">
+            You haven't submitted any applications yet. Click "New Application" to get started.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Reference</th>
+                        <th>Applicant</th>
+                        <th>Business</th>
+                        <th>Status</th>
+                        <th>Submitted On</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var app in applications)
+                    {
+                        <tr>
+                            <td><strong>@app.ReferenceNumber</strong></td>
+                            <td>@app.ApplicantName</td>
+                            <td>@app.BusinessName</td>
+                            <td>
+                                <span class="badge @GetStatusBadgeClass(app.Status)">@app.Status</span>
+                            </td>
+                            <td>@app.CreatedAt.ToLocalTime().ToString("g")</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-secondary" @onclick="() => ViewDetails(app.Id)">
+                                    Details
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private List<ApplicationResponse>? applications;
+
+    protected override async Task OnInitializedAsync()
+    {
+        applications = await Http.GetFromJsonAsync<List<ApplicationResponse>>("api/applications/my");
+    }
+
+    private void ViewDetails(Guid id)
+    {
+        Navigation.NavigateTo($"/operator/details/{id}");
+    }
+
+    private string GetStatusBadgeClass(string status)
+    {
+        return status switch
+        {
+            "ApplicationReceived" => "bg-info text-dark",
+            "UnderReview" => "bg-warning text-dark",
+            "Approved" => "bg-success",
+            "Rejected" => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+}

@@ -1,5 +1,6 @@
 using Licensing.Application.Interfaces;
 using Microsoft.Extensions.Configuration;
+using System;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -18,10 +19,14 @@ public class LocalFileStorageService : IFileStorageService
         }
     }
 
-    public async Task<string> SaveFileAsync(byte[] content, string fileName, string contentType)
+    // Fixed: Stream implementation for better memory efficiency
+    public async Task<string> SaveFileAsync(Stream fileStream, string fileName, string contentType)
     {
         var filePath = Path.Combine(_storagePath, $"{Guid.NewGuid()}_{fileName}");
-        await File.WriteAllBytesAsync(filePath, content);
+        using (var fs = new FileStream(filePath, FileMode.Create))
+        {
+            await fileStream.CopyToAsync(fs);
+        }
         return filePath;
     }
 
