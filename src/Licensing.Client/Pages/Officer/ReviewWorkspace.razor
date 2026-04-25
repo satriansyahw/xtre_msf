@@ -108,14 +108,22 @@
                             <button class="btn btn-sm btn-outline-primary" @onclick="AddFeedback">Add</button>
                         </div>
 
-                        @if (feedbacks.Any())
+                        <hr />
+
+                        @if (app.Feedbacks.Any())
                         {
+                            <h6>Feedback History</h6>
                             <div class="mb-4">
-                                @foreach (var fb in feedbacks)
+                                @foreach (var fb in app.Feedbacks.OrderByDescending(f => f.IsResolved ? 0 : 1))
                                 {
-                                    <div class="alert alert-secondary py-1 px-2 mb-1 small d-flex justify-content-between">
-                                        <span><strong>@fb.FieldName:</strong> @fb.Comment</span>
-                                        <button type="button" class="btn-close" style="font-size: 0.5rem;" @onclick="() => feedbacks.Remove(fb)"></button>
+                                    <div class="alert @(fb.IsResolved ? "alert-success border-success opacity-75" : "alert-warning border-warning") py-1 px-2 mb-1 small">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span><strong>@fb.FieldName:</strong> @fb.Comment</span>
+                                            @if (fb.IsResolved)
+                                            {
+                                                <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Resolved</span>
+                                            }
+                                        </div>
                                     </div>
                                 }
                             </div>
@@ -161,7 +169,6 @@
     private ApplicationDetailExtended? app;
     private List<ApplicationSnapshotResponse>? snapshots;
     private ProvideFeedbackRequest newFeedback = new();
-    private List<ProvideFeedbackRequest> feedbacks = new();
     private string globalComment = "";
     private string errorMessage = "";
     private bool isSubmitting = false;
@@ -196,8 +203,8 @@
         var response = await Http.PostAsJsonAsync($"api/review/{Id}/feedback", newFeedback);
         if (response.IsSuccessStatusCode)
         {
-            feedbacks.Add(new ProvideFeedbackRequest { FieldName = newFeedback.FieldName, Comment = newFeedback.Comment });
             newFeedback = new();
+            await LoadData(); // Refresh to show new feedback in history
         }
         else 
         {

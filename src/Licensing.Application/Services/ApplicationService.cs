@@ -246,6 +246,17 @@ public class ApplicationService : IApplicationService
         };
         _dbContext.ApplicationSnapshots.Add(snapshot);
 
+        // Resolve all existing feedbacks
+        var unresolvedFeedbacks = await _dbContext.Feedbacks
+            .Where(f => f.ApplicationId == applicationId && !f.IsResolved)
+            .ToListAsync();
+        
+        foreach (var f in unresolvedFeedbacks)
+        {
+            f.IsResolved = true;
+            f.UpdatedAt = DateTime.UtcNow;
+        }
+
         await _dbContext.SaveChangesAsync();
     }
 }
