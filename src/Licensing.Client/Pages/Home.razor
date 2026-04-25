@@ -1,7 +1,56 @@
-﻿@page "/"
+@page "/"
+@using Licensing.Client.Services
+@inject PersonaService PersonaService
+@inject NavigationManager Navigation
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Regulatory & Licensing Platform</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10 text-center">
+            <h1 class="display-4 fw-bold mb-4">Welcome to the Regulatory & Licensing Platform</h1>
+            <p class="lead text-muted mb-5">
+                Streamlining application submission, AI-powered verification, and regulatory review in one unified workspace.
+            </p>
 
-Welcome to your new app.
+            <div class="row g-4 mt-2">
+                <div class="col-md-6">
+                    <div class="card h-100 border-0 shadow-sm hover-lift">
+                        <div class="card-body p-4 text-start">
+                            <div class="feature-icon-small bg-primary bg-gradient text-white mb-3">
+                                <i class="bi bi-person-badge fs-4"></i>
+                            </div>
+                            <h3>Operator Portal</h3>
+                            <p class="text-muted">Submit new license applications, track progress, and address regulatory feedback.</p>
+                            <button class="btn btn-outline-primary" @onclick='() => SetPersona(Persona.Operator, "operator")'>
+                                Enter as Operator
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card h-100 border-0 shadow-sm hover-lift">
+                        <div class="card-body p-4 text-start">
+                            <div class="feature-icon-small bg-dark bg-gradient text-white mb-3">
+                                <i class="bi bi-shield-lock fs-4"></i>
+                            </div>
+                            <h3>Officer Workspace</h3>
+                            <p class="text-muted">Review applications, perform site assessments, and manage the regulatory queue.</p>
+                            <button class="btn btn-outline-dark" @onclick='() => SetPersona(Persona.Officer, "officer")'>
+                                Enter as Officer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private void SetPersona(Persona persona, string target)
+    {
+        PersonaService.SwitchTo(persona);
+        Navigation.NavigateTo(target);
+    }
+}

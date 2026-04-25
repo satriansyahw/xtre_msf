@@ -1,6 +1,10 @@
+@using Licensing.Client.Services
+@implements IDisposable
+@inject PersonaService PersonaService
+
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">Licensing.Client</a>
+        <a class="navbar-brand" href="">Licensing Platform</a>
         <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
             <span class="navbar-toggler-icon"></span>
         </button>
@@ -11,29 +15,31 @@
     <nav class="nav flex-column">
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Dashboard
             </NavLink>
         </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="operator">
-                <span class="bi bi-person-badge-nav-menu" aria-hidden="true"></span> Operator Portal
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="officer">
-                <span class="bi bi-shield-lock-nav-menu" aria-hidden="true"></span> Officer Portal
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
-            </NavLink>
-        </div>
+
+        @if (PersonaService.CurrentPersona == Persona.Operator)
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="operator">
+                    <span class="bi bi-list-task-nav-menu" aria-hidden="true"></span> My Applications
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="operator/submit">
+                    <span class="bi bi-plus-circle-nav-menu" aria-hidden="true"></span> New Application
+                </NavLink>
+            </div>
+        }
+        else if (PersonaService.CurrentPersona == Persona.Officer)
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="officer">
+                    <span class="bi bi-shield-check-nav-menu" aria-hidden="true"></span> Review Queue
+                </NavLink>
+            </div>
+        }
     </nav>
 </div>
 
@@ -45,5 +51,15 @@
     private void ToggleNavMenu()
     {
         collapseNavMenu = !collapseNavMenu;
+    }
+
+    protected override void OnInitialized()
+    {
+        PersonaService.OnPersonaChanged += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        PersonaService.OnPersonaChanged -= StateHasChanged;
     }
 }
