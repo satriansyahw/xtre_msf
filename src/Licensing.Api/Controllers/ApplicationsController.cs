@@ -42,4 +42,18 @@ public class ApplicationsController : ControllerBase
 
         return Ok(app);
     }
+
+    [HttpPost("{id}/resubmit")]
+    public async Task<IActionResult> Resubmit(Guid id, [FromBody] SubmitApplicationRequest request)
+    {
+        try 
+        {
+            await _applicationService.ResubmitApplicationAsync(id, request);
+            return Ok();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+    }
 }

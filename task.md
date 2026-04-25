@@ -8,21 +8,21 @@
 - [x] Basic API setup and Swagger configuration
 
 ## Phase 2: Use Case 1 (Operator Workflow)
-- [ ] Implement Application Submission API (with Snapshotting)
-- [ ] Implement File Upload API (Local Storage)
-- [ ] Implement Mock AI Verification Service
-- [ ] Build Operator Dashboard (Application List)
-- [ ] Build Guided Submission Wizard (Multi-step)
+- [x] Implement Application Submission API (with Snapshotting)
+- [x] Implement File Upload API (Local Storage)
+- [x] Implement Mock AI Verification Service
+- [x] Build Operator Dashboard (Application List)
+- [x] Build Guided Submission Wizard (Multi-step)
 - [ ] Build Resubmission Portal (Highlighting flagged items)
 
 ## Phase 3: Use Case 2 (Officer Workflow)
-- [ ] Build Officer Dashboard (Review Queue)
-- [ ] Build Review Workspace:
-    - [ ] Document/Field Review UI
-    - [ ] Contextual Feedback System
-    - [ ] Decision Logic (Approve/Reject/Resubmit)
-- [ ] Implement Version Comparison (Current vs. Previous Snapshot)
-- [ ] Implement Audit Trail and Status History view
+- [x] Implement Review Queue (Officer Dashboard)
+- [x] Build Review Workspace (Interactive JSON Viewer)
+- [x] Implement Field-level Feedback mechanism
+- [x] Implement Version Comparison tool (Snapshot based)
+- [x] Build Decision Panel (Approve/Reject/Resubmit logic)
+- [x] Implement Version Comparison (Current vs. Previous Snapshot)
+- [x] Implement Audit Trail and Status History view
 
 ## Phase 4: Polish & Validation
 - [ ] Persona Switcher (UI Toggle)

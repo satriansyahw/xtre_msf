@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Licensing.Api/Licensing.Api.csproj" />
+    <Project Path="src/Licensing.Application/Licensing.Application.csproj" />
+    <Project Path="src/Licensing.Client/Licensing.Client.csproj" />
+    <Project Path="src/Licensing.Domain/Licensing.Domain.csproj" />
+    <Project Path="src/Licensing.Infrastructure/Licensing.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Licensing.Tests.E2E/Licensing.Tests.E2E.csproj" />
+    <Project Path="tests/Licensing.Tests.Unit/Licensing.Tests.Unit.csproj" />
+  </Folder>
+</Solution>
