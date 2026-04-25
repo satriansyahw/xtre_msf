@@ -110,7 +110,7 @@
 
                         <hr />
 
-                        @if (app.Feedbacks.Any())
+                        @if (app.Feedbacks != null && app.Feedbacks.Any())
                         {
                             <h6>Feedback History</h6>
                             <div class="mb-4">
@@ -257,8 +257,8 @@
             Status = baseApp.Status;
             DataJson = baseApp.DataJson;
             CreatedAt = baseApp.CreatedAt;
-            Documents = baseApp.Documents;
-            Feedbacks = baseApp.Feedbacks;
+            Documents = baseApp.Documents ?? new();
+            Feedbacks = baseApp.Feedbacks ?? new();
         }
 
         // Fixed: Use real DataJson from the application
