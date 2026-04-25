@@ -1,4 +1,5 @@
 using Licensing.Application.Interfaces;
+using Licensing.Application.DTOs;
 using Licensing.Domain.Entities;
 using Licensing.Domain.Constants;
 using Microsoft.AspNetCore.Http;

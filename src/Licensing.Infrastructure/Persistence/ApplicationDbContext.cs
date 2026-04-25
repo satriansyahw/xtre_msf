@@ -14,6 +14,8 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<Document> Documents => Set<Document>();
     public DbSet<Feedback> Feedbacks => Set<Feedback>();
     public DbSet<ApplicationSnapshot> ApplicationSnapshots => Set<ApplicationSnapshot>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -36,5 +38,11 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
             .HasOne(f => f.Application)
             .WithMany(a => a.Feedbacks)
             .HasForeignKey(f => f.ApplicationId);
+
+        // Configuration for AuditLog relationship
+        modelBuilder.Entity<AuditLog>()
+            .HasOne(l => l.Application)
+            .WithMany()
+            .HasForeignKey(l => l.ApplicationId);
     }
 }

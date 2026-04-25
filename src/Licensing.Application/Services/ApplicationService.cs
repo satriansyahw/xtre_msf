@@ -64,6 +64,15 @@ public class ApplicationService : IApplicationService
             SubmittedBy = "Operator"
         };
         _dbContext.ApplicationSnapshots.Add(snapshot);
+        
+        // Log initial submission
+        _dbContext.AuditLogs.Add(new AuditLog
+        {
+            ApplicationId = application.Id,
+            NewStatus = application.Status,
+            ChangedBy = "Operator",
+            Comment = "Initial application submission"
+        });
 
         await _dbContext.SaveChangesAsync();
         return application.Id;
@@ -159,10 +168,20 @@ public class ApplicationService : IApplicationService
             throw new KeyNotFoundException($"Application {applicationId} not found.");
         }
 
+        var oldStatus = app.Status;
         app.Status = request.NewStatus;
         app.UpdatedAt = DateTime.UtcNow;
 
-        // Fixed: Persist GlobalComment
+        // Log transition
+        _dbContext.AuditLogs.Add(new AuditLog
+        {
+            ApplicationId = applicationId,
+            OldStatus = oldStatus,
+            NewStatus = request.NewStatus,
+            ChangedBy = "Officer",
+            Comment = request.GlobalComment
+        });
+
         if (!string.IsNullOrWhiteSpace(request.GlobalComment))
         {
             _dbContext.Feedbacks.Add(new Feedback
@@ -174,6 +193,16 @@ public class ApplicationService : IApplicationService
             });
         }
 
+        await _dbContext.SaveChangesAsync();
+
+        // Create notification for Operator
+        var notification = new Notification
+        {
+            ApplicationId = applicationId,
+            Message = $"Your application {app.ReferenceNumber} status has changed to {request.NewStatus}.",
+            TargetPersona = "Operator"
+        };
+        _dbContext.Notifications.Add(notification);
         await _dbContext.SaveChangesAsync();
     }
 
@@ -209,9 +238,22 @@ public class ApplicationService : IApplicationService
         app.UpdatedAt = DateTime.UtcNow;
 
         // Determine next status
-        app.Status = app.Status == ApplicationStatus.PendingPreSiteResubmission 
+        var oldStatus = app.Status;
+        var newStatus = app.Status == ApplicationStatus.PendingPreSiteResubmission 
             ? ApplicationStatus.PreSiteResubmitted 
             : ApplicationStatus.PostSiteClarificationResubmitted;
+            
+        app.Status = newStatus;
+
+        // Log transition
+        _dbContext.AuditLogs.Add(new AuditLog
+        {
+            ApplicationId = applicationId,
+            OldStatus = oldStatus,
+            NewStatus = newStatus,
+            ChangedBy = "Operator",
+            Comment = "Application resubmitted with updates"
+        });
 
         // Sync documents
         if (request.DocumentIds.Any())
@@ -258,5 +300,58 @@ public class ApplicationService : IApplicationService
         }
 
         await _dbContext.SaveChangesAsync();
+
+        // Create notification for Officer
+        var notification = new Notification
+        {
+            ApplicationId = applicationId,
+            Message = $"Application {app.ReferenceNumber} has been resubmitted by the Operator.",
+            TargetPersona = "Officer"
+        };
+        _dbContext.Notifications.Add(notification);
+        await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task<List<NotificationResponse>> GetNotificationsAsync(string persona)
+    {
+        return await _dbContext.Notifications
+            .Where(n => n.TargetPersona == persona)
+            .OrderByDescending(n => n.CreatedAt)
+            .Take(10)
+            .Select(n => new NotificationResponse
+            {
+                Id = n.Id,
+                ApplicationId = n.ApplicationId,
+                Message = n.Message,
+                IsRead = n.IsRead,
+                CreatedAt = n.CreatedAt
+            })
+            .ToListAsync();
+    }
+
+    public async Task MarkNotificationAsReadAsync(Guid notificationId)
+    {
+        var notification = await _dbContext.Notifications.FindAsync(notificationId);
+        if (notification != null)
+        {
+            notification.IsRead = true;
+            await _dbContext.SaveChangesAsync();
+        }
+    }
+
+    public async Task<List<AuditLogResponse>> GetAuditTrailAsync(Guid applicationId)
+    {
+        return await _dbContext.AuditLogs
+            .Where(l => l.ApplicationId == applicationId)
+            .OrderByDescending(l => l.CreatedAt)
+            .Select(l => new AuditLogResponse
+            {
+                OldStatus = l.OldStatus != null ? l.OldStatus.ToString() : null,
+                NewStatus = l.NewStatus.ToString(),
+                ChangedBy = l.ChangedBy,
+                Comment = l.Comment,
+                CreatedAt = l.CreatedAt
+            })
+            .ToListAsync();
     }
 }

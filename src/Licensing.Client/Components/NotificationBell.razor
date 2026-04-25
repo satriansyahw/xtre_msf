@@ -1,0 +1,114 @@
+@using Licensing.Application.DTOs
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@implements IDisposable
+
+<div class="dropdown d-inline-block me-3">
+    <button class="btn btn-light position-relative p-2 rounded-circle shadow-sm" type="button" id="notificationBell" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="bi bi-bell-fill fs-5 text-dark"></i>
+        @if (unreadCount > 0)
+        {
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem">
+                @unreadCount
+                <span class="visually-hidden">unread notifications</span>
+            </span>
+        }
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 p-0" aria-labelledby="notificationBell" style="width: 300px; max-height: 400px; overflow-y: auto;">
+        <li class="p-3 border-bottom bg-light">
+            <h6 class="mb-0 fw-bold">Notifications</h6>
+        </li>
+        @if (!notifications.Any())
+        {
+            <li class="p-4 text-center text-muted small">
+                <i class="bi bi-mailbox fs-2 d-block mb-2 opacity-50"></i>
+                No new notifications
+            </li>
+        }
+        else
+        {
+            @foreach (var n in notifications)
+            {
+                <li class="border-bottom">
+                    <button class="dropdown-item p-3 @(n.IsRead ? "opacity-75" : "bg-primary bg-opacity-10 fw-bold")" @onclick="() => HandleNotificationClick(n)">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="small text-truncate" style="max-width: 180px;">Application Update</span>
+                            <span class="text-muted" style="font-size: 0.7rem">@GetTimeAgo(n.CreatedAt)</span>
+                        </div>
+                        <div class="small text-wrap">@n.Message</div>
+                    </button>
+                </li>
+            }
+        }
+    </ul>
+</div>
+
+@code {
+    [Parameter] public string Persona { get; set; } = "Operator";
+    
+    private List<NotificationResponse> notifications = new();
+    private int unreadCount => notifications.Count(n => !n.IsRead);
+    private System.Threading.Timer? timer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        timer = new System.Threading.Timer(async _ => await InvokeAsync(async () => {
+            await LoadNotifications();
+            StateHasChanged();
+        }), null, 30000, 30000);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadNotifications();
+    }
+
+    private async Task LoadNotifications()
+    {
+        try 
+        {
+            var result = await Http.GetFromJsonAsync<List<NotificationResponse>>($"api/applications/notifications?persona={Persona}");
+            if (result != null)
+            {
+                notifications = result;
+            }
+        }
+        catch { }
+    }
+
+    private async Task HandleNotificationClick(NotificationResponse n)
+    {
+        if (!n.IsRead)
+        {
+            await Http.PostAsync($"api/applications/notifications/{n.Id}/read", null);
+            n.IsRead = true;
+        }
+
+        // Navigate to specific details
+        string targetUrl;
+        if (Persona == "Operator")
+        {
+            targetUrl = $"/operator/details/{n.ApplicationId}";
+        }
+        else
+        {
+            targetUrl = $"/officer/review/{n.ApplicationId}";
+        }
+
+        Navigation.NavigateTo(targetUrl);
+    }
+
+    private string GetTimeAgo(DateTime dt)
+    {
+        var span = DateTime.UtcNow - dt;
+        if (span.TotalMinutes < 1) return "Just now";
+        if (span.TotalHours < 1) return $"{(int)span.TotalMinutes}m ago";
+        if (span.TotalDays < 1) return $"{(int)span.TotalHours}h ago";
+        return dt.ToString("MMM dd");
+    }
+
+    public void Dispose()
+    {
+        timer?.Dispose();
+    }
+}

@@ -1,4 +1,9 @@
 @inherits LayoutComponentBase
+@using Licensing.Client.Services
+@implements IDisposable
+@inject PersonaService PersonaService
+@inject NavigationManager Navigation
+
 <div class="page">
     <div class="sidebar">
         <NavMenu />
@@ -6,11 +11,49 @@
 
     <main>
         <PersonaSwitcher />
-        <div class="top-row px-4">
+        <div class="top-row px-4 d-flex justify-content-end align-items-center">
+            <NotificationBell Persona="@PersonaService.CurrentPersona.ToString()" />
         </div>
 
         <article class="content px-4">
-            @Body
+            @if (IsUnauthorized())
+            {
+                <div class="py-5 text-center text-muted">
+                    <div class="spinner-border spinner-border-sm me-2"></div> Switching roles...
+                </div>
+            }
+            else
+            {
+                @Body
+            }
         </article>
     </main>
 </div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        PersonaService.OnPersonaChanged += StateHasChanged;
+        Navigation.LocationChanged += (s, e) => StateHasChanged();
+    }
+
+    private bool IsUnauthorized()
+    {
+        var relativePath = Navigation.ToBaseRelativePath(Navigation.Uri).ToLower();
+        
+        // If Officer is looking at an Operator page
+        if (PersonaService.CurrentPersona == Persona.Officer && relativePath.StartsWith("operator"))
+            return true;
+
+        // If Operator is looking at an Officer page
+        if (PersonaService.CurrentPersona == Persona.Operator && relativePath.StartsWith("officer"))
+            return true;
+
+        return false;
+    }
+
+    public void Dispose()
+    {
+        PersonaService.OnPersonaChanged -= StateHasChanged;
+    }
+}

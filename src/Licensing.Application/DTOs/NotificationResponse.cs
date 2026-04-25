@@ -1,0 +1,12 @@
+using System;
+
+namespace Licensing.Application.DTOs;
+
+public class NotificationResponse
+{
+    public Guid Id { get; set; }
+    public Guid ApplicationId { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public bool IsRead { get; set; }
+    public DateTime CreatedAt { get; set; }
+}

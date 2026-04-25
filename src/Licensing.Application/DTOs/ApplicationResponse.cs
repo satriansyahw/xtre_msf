@@ -46,3 +46,12 @@ public class FeedbackResponse
     public string Comment { get; set; } = string.Empty;
     public bool IsResolved { get; set; }
 }
+
+public class AuditLogResponse
+{
+    public string? OldStatus { get; set; }
+    public string NewStatus { get; set; } = string.Empty;
+    public string ChangedBy { get; set; } = string.Empty;
+    public string? Comment { get; set; }
+    public DateTime CreatedAt { get; set; }
+}

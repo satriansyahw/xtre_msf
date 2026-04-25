@@ -1,5 +1,6 @@
 @page "/operator/submit"
 @using Licensing.Application.DTOs
+@using Licensing.Client.Services
 @inject HttpClient Http
 @inject NavigationManager Navigation
 
@@ -68,7 +69,7 @@
                     <p class="text-muted small">Upload your Business Registration and Identity Proof.</p>
                     
                     <div class="mb-4">
-                        <InputFile OnChange="HandleFileSelected" class="form-control" multiple />
+                        <FileUploadZone Id="appDocs" OnChange="HandleFileSelected" />
                     </div>
 
                     @if (uploadedDocuments.Any())
@@ -125,9 +126,18 @@
 </div>
 
 @code {
+    [Inject] private PersonaService PersonaService { get; set; } = default!;
     private int currentStep = 1;
     private SubmitApplicationRequest request = new();
     private bool isSubmitting = false;
+
+    protected override void OnInitialized()
+    {
+        if (PersonaService.CurrentPersona != Persona.Operator)
+        {
+            Navigation.NavigateTo("/");
+        }
+    }
     
     // Step 2 specific fields (will be serialized to DataJson)
     private string businessAddress = "";

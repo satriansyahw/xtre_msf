@@ -60,3 +60,11 @@ This project was developed with the assistance of **Antigravity (AI Coding Assis
 
 ## 🛠️ Architecture
 See [SCOPE.md](./SCOPE.md) for detailed technical documentation.
+
+## 📖 User Guidance
+See [guidance.md](./guidance.md) for step-by-step instructions on how to use the system as an Operator or Officer.
+
+## ✨ Latest Features
+- **Audit Trail**: Full visibility of application status transitions in a vertical timeline.
+- **Revision History**: Comparison tool for both Operators and Officers to track data changes across submission rounds.
+- **Drag-and-Drop Uploads**: Enhanced UX for document submissions with real-time AI status polling.

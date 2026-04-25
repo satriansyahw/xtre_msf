@@ -50,6 +50,7 @@ app.UseAuthorization();
 
 app.MapRazorPages();
 app.MapControllers();
+app.MapStaticAssets(); // New in .NET 9+ to handle fingerprinted assets
 app.MapFallbackToFile("index.html");
 
 app.Run();

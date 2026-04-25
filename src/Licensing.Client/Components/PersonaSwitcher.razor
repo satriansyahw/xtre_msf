@@ -2,17 +2,19 @@
 @implements IDisposable
 @inject PersonaService PersonaService
 
+@inject NavigationManager Navigation
+
 <div class="persona-switcher p-2 border-bottom bg-light d-flex align-items-center justify-content-center">
     <span class="me-3 fw-bold small text-uppercase text-muted">Active Persona:</span>
     <div class="btn-group btn-group-sm" role="group">
         <button type="button" 
                 class="btn @(PersonaService.CurrentPersona == Persona.Operator ? "btn-primary" : "btn-outline-primary")" 
-                @onclick="() => PersonaService.SwitchTo(Persona.Operator)">
+                @onclick="@(() => SwitchPersona(Persona.Operator, "/operator"))">
             Operator
         </button>
         <button type="button" 
                 class="btn @(PersonaService.CurrentPersona == Persona.Officer ? "btn-dark" : "btn-outline-dark")" 
-                @onclick="() => PersonaService.SwitchTo(Persona.Officer)">
+                @onclick="@(() => SwitchPersona(Persona.Officer, "/officer"))">
             Officer
         </button>
     </div>
@@ -22,6 +24,13 @@
     protected override void OnInitialized()
     {
         PersonaService.OnPersonaChanged += StateHasChanged;
+    }
+
+    private void SwitchPersona(Persona persona, string target)
+    {
+        Console.WriteLine($"Switching to {persona} and navigating to {target}");
+        PersonaService.SwitchTo(persona);
+        Navigation.NavigateTo(target, forceLoad: true);
     }
 
     public void Dispose()

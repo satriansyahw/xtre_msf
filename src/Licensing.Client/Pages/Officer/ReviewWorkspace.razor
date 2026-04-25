@@ -1,6 +1,7 @@
 @page "/officer/review/{Id:guid}"
 @using Licensing.Application.DTOs
 @using Licensing.Domain.Enums
+@using Licensing.Client.Services
 @using System.Text.Json
 @inject HttpClient Http
 @inject NavigationManager Navigation
@@ -84,6 +85,11 @@
                         </table>
                     </div>
                 </div>
+
+                <div class="mb-4">
+                    <Timeline AuditLogs="auditLogs" />
+                </div>
+
                 <VersionDiffViewer Snapshots="snapshots" />
             </div>
 
@@ -168,13 +174,22 @@
     [Parameter] public Guid Id { get; set; }
     private ApplicationDetailExtended? app;
     private List<ApplicationSnapshotResponse>? snapshots;
+    private List<AuditLogResponse>? auditLogs;
     private ProvideFeedbackRequest newFeedback = new();
     private string globalComment = "";
     private string errorMessage = "";
     private bool isSubmitting = false;
 
+    [Inject] private PersonaService PersonaService { get; set; } = default!;
+
     protected override async Task OnInitializedAsync()
     {
+        if (PersonaService.CurrentPersona != Persona.Officer)
+        {
+            Navigation.NavigateTo("/");
+            return;
+        }
+
         await LoadData();
     }
 
@@ -189,6 +204,7 @@
             }
 
             snapshots = await Http.GetFromJsonAsync<List<ApplicationSnapshotResponse>>($"api/review/{Id}/snapshots");
+            auditLogs = await Http.GetFromJsonAsync<List<AuditLogResponse>>($"api/applications/{Id}/audit");
         }
         catch (Exception ex)
         {

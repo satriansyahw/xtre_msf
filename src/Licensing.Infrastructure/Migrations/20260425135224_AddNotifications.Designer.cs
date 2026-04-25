@@ -3,6 +3,7 @@ using System;
 using Licensing.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Licensing.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260425135224_AddNotifications")]
+    partial class AddNotifications
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.7");
@@ -50,41 +53,6 @@ namespace Licensing.Infrastructure.Migrations
                     b.ToTable("ApplicationSnapshots");
                 });
 
-            modelBuilder.Entity("Licensing.Domain.Entities.AuditLog", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("ApplicationId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ChangedBy")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Comment")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("NewStatus")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("OldStatus")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ApplicationId");
-
-                    b.ToTable("AuditLogs");
-                });
-
             modelBuilder.Entity("Licensing.Domain.Entities.Document", b =>
                 {
                     b.Property<Guid>("Id")
@@ -95,7 +63,7 @@ namespace Licensing.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<Guid?>("ApplicationId")
+                    b.Property<Guid>("ApplicationId")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("ContentType")
@@ -242,22 +210,13 @@ namespace Licensing.Infrastructure.Migrations
                     b.Navigation("Application");
                 });
 
-            modelBuilder.Entity("Licensing.Domain.Entities.AuditLog", b =>
-                {
-                    b.HasOne("Licensing.Domain.Entities.LicenseApplication", "Application")
-                        .WithMany()
-                        .HasForeignKey("ApplicationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Application");
-                });
-
             modelBuilder.Entity("Licensing.Domain.Entities.Document", b =>
                 {
                     b.HasOne("Licensing.Domain.Entities.LicenseApplication", "Application")
                         .WithMany("Documents")
-                        .HasForeignKey("ApplicationId");
+                        .HasForeignKey("ApplicationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Application");
                 });

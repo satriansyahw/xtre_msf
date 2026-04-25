@@ -1,126 +1,172 @@
 @page "/operator/details/{Id:guid}"
 @using Licensing.Application.DTOs
+@using Licensing.Client.Services
 @inject HttpClient Http
 @inject NavigationManager Navigation
+@implements IDisposable
 
 <div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <button class="btn btn-outline-secondary" @onclick='() => Navigation.NavigateTo("/operator")'>
-            <i class="bi bi-arrow-left"></i> Back to Dashboard
-        </button>
-        <h2>Application Details</h2>
-    </div>
-
-    @if (app == null)
+    @if (PersonaService.CurrentPersona != Persona.Operator)
     {
-        <div class="d-flex justify-content-center">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary mb-3" role="status"></div>
+            <p class="text-muted lead">Redirecting to appropriate workspace...</p>
         </div>
     }
     else
     {
-        <div class="row">
-            <div class="col-md-8">
-                <div class="card shadow-sm mb-4">
-                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">General Information</h5>
-                        <span class="badge @GetStatusBadgeClass(app.Status)">@app.GetStatusLabel(false)</span>
-                    </div>
-                    <div class="card-body">
-                        <div class="row mb-3">
-                            <div class="col-sm-4 fw-bold">Reference Number</div>
-                            <div class="col-sm-8 text-primary fw-bold">@app.ReferenceNumber</div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-sm-4 fw-bold">Applicant Name</div>
-                            <div class="col-sm-8">@app.ApplicantName</div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-sm-4 fw-bold">Business Name</div>
-                            <div class="col-sm-8">@app.BusinessName</div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-sm-4 fw-bold">Submitted On</div>
-                            <div class="col-sm-8">@app.CreatedAt.ToLocalTime().ToString("f")</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card shadow-sm mb-4">
-                    <div class="card-header bg-light">
-                        <h5 class="mb-0">Attached Documents</h5>
-                    </div>
-                    <div class="card-body">
-                        @if (!app.Documents.Any())
-                        {
-                            <p class="text-muted">No documents attached.</p>
-                        }
-                        else
-                        {
-                            <ul class="list-group">
-                                @foreach (var doc in app.Documents)
-                                {
-                                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <i class="bi bi-file-earmark-text me-2"></i>
-                                            @doc.FileName
-                                        </div>
-                                        <span class="badge @GetAIStatusBadgeClass(doc.AIStatus)">AI: @doc.AIStatus</span>
-                                    </li>
-                                }
-                            </ul>
-                        }
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-4">
-                <div class="card shadow-sm border-warning">
-                    <div class="card-header bg-warning text-dark">
-                        <h5 class="mb-0">Feedback & Actions</h5>
-                    </div>
-                    <div class="card-body">
-                        @if (!app.Feedbacks.Any())
-                        {
-                            <p class="text-center py-4 text-muted">No feedback received yet.</p>
-                        }
-                        else
-                        {
-                            @foreach (var fb in app.Feedbacks)
-                            {
-                                <div class="alert alert-warning small">
-                                    <strong>@fb.FieldName:</strong> @fb.Comment
-                                </div>
-                            }
-                        }
-
-                        @if (app.Status == "PendingPreSiteResubmission" || app.Status == "PendingPostSiteResubmission")
-                        {
-                            <button class="btn btn-primary w-100 mt-2" @onclick='() => Navigation.NavigateTo($"/operator/resubmit/{Id}")'>
-                                Resubmit Application
-                            </button>
-                        }
-                    </div>
-                </div>
-            </div>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <button class="btn btn-outline-secondary" @onclick='() => Navigation.NavigateTo("/operator")'>
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </button>
+            <h2>Application Details</h2>
         </div>
+
+        @if (app == null)
+        {
+            <div class="d-flex justify-content-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="row">
+                <div class="col-md-8">
+                    <ul class="nav nav-tabs mb-3" id="appDetailsTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="details-tab" data-bs-toggle="tab" data-bs-target="#details" type="button" role="tab">Details</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history" type="button" role="tab">History & Revisions</button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="appDetailsTabContent">
+                        <div class="tab-pane fade show active" id="details" role="tabpanel">
+                            <div class="card shadow-sm mb-4">
+                                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0">General Information</h5>
+                                    <span class="badge @GetStatusBadgeClass(app.Status)">@app.GetStatusLabel(false)</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row mb-3">
+                                        <div class="col-sm-4 fw-bold">Reference Number</div>
+                                        <div class="col-sm-8 text-primary fw-bold">@app.ReferenceNumber</div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-sm-4 fw-bold">Applicant Name</div>
+                                        <div class="col-sm-8">@app.ApplicantName</div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-sm-4 fw-bold">Business Name</div>
+                                        <div class="col-sm-8">@app.BusinessName</div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-sm-4 fw-bold">Submitted On</div>
+                                        <div class="col-sm-8">@app.CreatedAt.ToLocalTime().ToString("f")</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card shadow-sm mb-4">
+                                <div class="card-header bg-light">
+                                    <h5 class="mb-0">Attached Documents</h5>
+                                </div>
+                                <div class="card-body">
+                                    @if (!app.Documents.Any())
+                                    {
+                                        <p class="text-muted">No documents attached.</p>
+                                    }
+                                    else
+                                    {
+                                        <ul class="list-group">
+                                            @foreach (var doc in app.Documents)
+                                            {
+                                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <i class="bi bi-file-earmark-text me-2"></i>
+                                                        @doc.FileName
+                                                    </div>
+                                                    <span class="badge @GetAIStatusBadgeClass(doc.AIStatus)">AI: @doc.AIStatus</span>
+                                                </li>
+                                            }
+                                        </ul>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="tab-pane fade" id="history" role="tabpanel">
+                            <Timeline AuditLogs="auditLogs" />
+                            <VersionDiffViewer Snapshots="snapshots" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card shadow-sm border-warning sticky-top" style="top: 20px;">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="mb-0">Feedback & Actions</h5>
+                        </div>
+                        <div class="card-body">
+                            @if (!app.Feedbacks.Any())
+                            {
+                                <p class="text-center py-4 text-muted">No feedback received yet.</p>
+                            }
+                            else
+                            {
+                                @foreach (var fb in app.Feedbacks)
+                                {
+                                    <div class="alert alert-warning small">
+                                        <strong>@fb.FieldName:</strong> @fb.Comment
+                                    </div>
+                                }
+                            }
+
+                            @if (app.Status == "PendingPreSiteResubmission" || app.Status == "PendingPostSiteResubmission")
+                            {
+                                <button class="btn btn-primary w-100 mt-2" @onclick='() => Navigation.NavigateTo($"/operator/resubmit/{Id}")'>
+                                    Resubmit Application
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
     }
 </div>
 
 @code {
     [Parameter] public Guid Id { get; set; }
     private ApplicationResponse? app;
+    private List<AuditLogResponse>? auditLogs;
+    private List<ApplicationSnapshotResponse>? snapshots;
+
+    [Inject] private PersonaService PersonaService { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadData();
+        PersonaService.OnPersonaChanged += StateHasChanged;
+        
+        if (PersonaService.CurrentPersona == Persona.Operator)
+        {
+            await LoadData();
+        }
+    }
+
+    public void Dispose()
+    {
+        PersonaService.OnPersonaChanged -= StateHasChanged;
     }
 
     private async Task LoadData()
     {
         app = await Http.GetFromJsonAsync<ApplicationResponse>($"api/applications/{Id}");
+        auditLogs = await Http.GetFromJsonAsync<List<AuditLogResponse>>($"api/applications/{Id}/audit");
+        snapshots = await Http.GetFromJsonAsync<List<ApplicationSnapshotResponse>>($"api/review/{Id}/snapshots");
     }
 
     private string GetStatusBadgeClass(string status)

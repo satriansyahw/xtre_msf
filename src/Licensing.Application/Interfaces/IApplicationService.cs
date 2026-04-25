@@ -15,4 +15,7 @@ public interface IApplicationService
     Task SubmitReviewAsync(Guid applicationId, ReviewApplicationRequest request);
     Task<List<ApplicationSnapshotResponse>> GetSnapshotsAsync(Guid applicationId);
     Task ResubmitApplicationAsync(Guid applicationId, SubmitApplicationRequest request);
+    Task<List<NotificationResponse>> GetNotificationsAsync(string persona);
+    Task MarkNotificationAsReadAsync(Guid notificationId);
+    Task<List<AuditLogResponse>> GetAuditTrailAsync(Guid applicationId);
 }

@@ -3,68 +3,98 @@
 @inject HttpClient Http
 @inject NavigationManager Navigation
 
-<div class="container mt-4">
-    <div class="mb-4">
-        <h2>Officer Review Queue</h2>
-        <p class="text-muted">Manage and review pending license applications.</p>
-    </div>
+@implements IDisposable
 
-    @if (applications == null)
+<div class="container mt-4">
+    @if (PersonaService.CurrentPersona != Persona.Officer)
     {
-        <div class="d-flex justify-content-center">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-        </div>
-    }
-    else if (!applications.Any())
-    {
-        <div class="alert alert-success">
-            Queue is empty! All applications have been processed.
+        <div class="text-center py-5">
+            <div class="spinner-border text-dark mb-3" role="status"></div>
+            <p class="text-muted lead">Switching to regulatory queue...</p>
         </div>
     }
     else
     {
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead class="table-dark">
-                    <tr>
-                        <th>Reference</th>
-                        <th>Applicant</th>
-                        <th>Business</th>
-                        <th>Internal Status</th>
-                        <th>Submitted On</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var app in applications)
-                    {
-                        <tr>
-                            <td><strong>@app.ReferenceNumber</strong></td>
-                            <td>@app.ApplicantName</td>
-                            <td>@app.BusinessName</td>
-                            <td>
-                                <span class="badge @GetStatusBadgeClass(app.Status)">@app.GetStatusLabel(true)</span>
-                            </td>
-                            <td>@app.CreatedAt.ToLocalTime().ToString("g")</td>
-                            <td>
-                                <button class="btn btn-sm btn-primary" @onclick="() => Review(app.Id)">
-                                    Open Workspace
-                                </button>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+        <div class="mb-4">
+            <h2>Officer Review Queue</h2>
+            <p class="text-muted">Manage and review pending license applications.</p>
         </div>
+
+        @if (applications == null)
+        {
+            <div class="d-flex justify-content-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        }
+        else if (!applications.Any())
+        {
+            <div class="alert alert-success">
+                Queue is empty! All applications have been processed.
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Reference</th>
+                            <th>Applicant</th>
+                            <th>Business</th>
+                            <th>Internal Status</th>
+                            <th>Submitted On</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var app in applications)
+                        {
+                            <tr>
+                                <td><strong>@app.ReferenceNumber</strong></td>
+                                <td>@app.ApplicantName</td>
+                                <td>@app.BusinessName</td>
+                                <td>
+                                    <span class="badge @GetStatusBadgeClass(app.Status)">@app.GetStatusLabel(true)</span>
+                                </td>
+                                <td>@app.CreatedAt.ToLocalTime().ToString("g")</td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary" @onclick="() => Review(app.Id)">
+                                        Open Workspace
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
     }
 </div>
 
 @code {
+    @using Licensing.Client.Services
+    [Inject] private PersonaService PersonaService { get; set; } = default!;
     private List<ApplicationResponse>? applications;
 
     protected override async Task OnInitializedAsync()
+    {
+        PersonaService.OnPersonaChanged += HandlePersonaChanged;
+ 
+        if (PersonaService.CurrentPersona == Persona.Officer)
+        {
+            await LoadData();
+        }
+    }
+
+    private async void HandlePersonaChanged()
+    {
+        applications = null;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadData()
     {
         applications = await Http.GetFromJsonAsync<List<ApplicationResponse>>("api/review/applications");
     }
@@ -72,6 +102,11 @@
     private void Review(Guid id)
     {
         Navigation.NavigateTo($"/officer/review/{id}");
+    }
+
+    public void Dispose()
+    {
+        PersonaService.OnPersonaChanged -= HandlePersonaChanged;
     }
 
     private string GetStatusBadgeClass(string status)
