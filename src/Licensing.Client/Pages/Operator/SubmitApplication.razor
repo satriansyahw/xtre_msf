@@ -1,0 +1,182 @@
+@page "/operator/submit"
+@using Licensing.Application.DTOs
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<div class="container mt-4">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0">License Application Submission</h3>
+        </div>
+        <div class="card-body">
+            <!-- Progress Stepper -->
+            <div class="d-flex justify-content-between mb-4">
+                <div class="text-center @(currentStep == 1 ? "fw-bold text-primary" : "text-muted")">
+                    <div class="rounded-circle border d-inline-flex align-items-center justify-content-center mb-1" style="width: 30px; height: 30px;">1</div>
+                    <small class="d-block">Basic Info</small>
+                </div>
+                <div class="flex-grow-1 border-bottom mx-2" style="height: 15px;"></div>
+                <div class="text-center @(currentStep == 2 ? "fw-bold text-primary" : "text-muted")">
+                    <div class="rounded-circle border d-inline-flex align-items-center justify-content-center mb-1" style="width: 30px; height: 30px;">2</div>
+                    <small class="d-block">Details</small>
+                </div>
+                <div class="flex-grow-1 border-bottom mx-2" style="height: 15px;"></div>
+                <div class="text-center @(currentStep == 3 ? "fw-bold text-primary" : "text-muted")">
+                    <div class="rounded-circle border d-inline-flex align-items-center justify-content-center mb-1" style="width: 30px; height: 30px;">3</div>
+                    <small class="d-block">Documents</small>
+                </div>
+            </div>
+
+            <hr />
+
+            @if (currentStep == 1)
+            {
+                <div class="step-content">
+                    <h5>Step 1: Applicant Information</h5>
+                    <div class="mb-3">
+                        <label class="form-label">Applicant Full Name</label>
+                        <input type="text" class="form-control" @bind="request.ApplicantName" placeholder="e.g. John Doe" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Business Name</label>
+                        <input type="text" class="form-control" @bind="request.BusinessName" placeholder="e.g. Acme Corp" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Contact Email</label>
+                        <input type="email" class="form-control" @bind="request.ContactEmail" placeholder="john@example.com" />
+                    </div>
+                </div>
+            }
+            else if (currentStep == 2)
+            {
+                <div class="step-content">
+                    <h5>Step 2: Business Details</h5>
+                    <div class="mb-3">
+                        <label class="form-label">Proposed Business Address</label>
+                        <textarea class="form-control" @bind="businessAddress" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Number of Employees</label>
+                        <input type="number" class="form-control" @bind="employeeCount" />
+                    </div>
+                </div>
+            }
+            else if (currentStep == 3)
+            {
+                <div class="step-content">
+                    <h5>Step 3: Document Uploads</h5>
+                    <p class="text-muted small">Upload your Business Registration and Identity Proof.</p>
+                    
+                    <div class="mb-4">
+                        <InputFile OnChange="HandleFileSelected" class="form-control" multiple />
+                    </div>
+
+                    @if (uploadedDocuments.Any())
+                    {
+                        <ul class="list-group">
+                            @foreach (var doc in uploadedDocuments)
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    @doc.FileName
+                                    <span class="badge bg-secondary">Uploaded</span>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            }
+
+            <div class="mt-4 d-flex justify-content-between">
+                @if (currentStep > 1)
+                {
+                    <button class="btn btn-outline-secondary" @onclick="PreviousStep">Previous</button>
+                }
+                else
+                {
+                    <div></div>
+                }
+
+                @if (currentStep < 3)
+                {
+                    <button class="btn btn-primary" @onclick="NextStep" disabled="@(!IsStepValid())">Next</button>
+                }
+                else
+                {
+                    <button class="btn btn-success" @onclick="Submit" disabled="@isSubmitting">
+                        @if (isSubmitting)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        Submit Application
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private int currentStep = 1;
+    private SubmitApplicationRequest request = new();
+    private bool isSubmitting = false;
+    
+    // Step 2 specific fields (will be serialized to DataJson)
+    private string businessAddress = "";
+    private int employeeCount = 0;
+
+    private List<DocumentResponse> uploadedDocuments = new();
+
+    private void NextStep() => currentStep++;
+    private void PreviousStep() => currentStep--;
+
+    private bool IsStepValid()
+    {
+        if (currentStep == 1)
+            return !string.IsNullOrWhiteSpace(request.ApplicantName) && 
+                   !string.IsNullOrWhiteSpace(request.BusinessName) && 
+                   !string.IsNullOrWhiteSpace(request.ContactEmail);
+        
+        return true;
+    }
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        foreach (var file in e.GetMultipleFiles())
+        {
+            var content = new MultipartFormDataContent();
+            var fileContent = new StreamContent(file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024));
+            content.Add(fileContent, "file", file.Name);
+
+            var response = await Http.PostAsync("api/uploads", content);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<DocumentResponse>();
+                if (result != null)
+                {
+                    uploadedDocuments.Add(result);
+                    request.DocumentIds.Add(result.Id);
+                }
+            }
+        }
+    }
+
+    private async Task Submit()
+    {
+        isSubmitting = true;
+        
+        // Prepare JSON data
+        var data = new { BusinessAddress = businessAddress, EmployeeCount = employeeCount };
+        request.DataJson = System.Text.Json.JsonSerializer.Serialize(data);
+
+        var response = await Http.PostAsJsonAsync("api/applications", request);
+        if (response.IsSuccessStatusCode)
+        {
+            Navigation.NavigateTo("/operator");
+        }
+        else
+        {
+            isSubmitting = false;
+            // Handle error (not implemented for simplicity)
+        }
+    }
+}

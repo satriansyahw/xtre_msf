@@ -19,6 +19,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddScoped<IApplicationDbContext>(provider => 
     provider.GetRequiredService<ApplicationDbContext>());
 builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
+builder.Services.AddHostedService<MockAIVerificationService>();
 
 var app = builder.Build();
 
