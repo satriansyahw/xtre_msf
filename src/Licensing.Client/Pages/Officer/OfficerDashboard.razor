@@ -45,7 +45,7 @@
                             <td>@app.ApplicantName</td>
                             <td>@app.BusinessName</td>
                             <td>
-                                <span class="badge @GetStatusBadgeClass(app.Status)">@app.Status</span>
+                                <span class="badge @GetStatusBadgeClass(app.Status)">@app.GetStatusLabel(true)</span>
                             </td>
                             <td>@app.CreatedAt.ToLocalTime().ToString("g")</td>
                             <td>

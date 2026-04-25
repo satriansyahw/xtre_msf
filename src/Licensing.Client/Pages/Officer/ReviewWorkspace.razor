@@ -121,6 +121,15 @@
                             </div>
                         }
 
+                        <div class="mb-3">
+                            <label class="form-label small">Common Templates</label>
+                            <div class="d-flex flex-wrap gap-1">
+                                <button class="btn btn-xs btn-outline-secondary py-0 px-2" style="font-size: 0.7rem;" @onclick='() => newFeedback.Comment = "Please provide a clearer document scan."'>Clearer Scan</button>
+                                <button class="btn btn-xs btn-outline-secondary py-0 px-2" style="font-size: 0.7rem;" @onclick='() => newFeedback.Comment = "Name does not match identification."'>Name Mismatch</button>
+                                <button class="btn btn-xs btn-outline-secondary py-0 px-2" style="font-size: 0.7rem;" @onclick='() => newFeedback.Comment = "Supporting documentation is missing."'>Missing Support</button>
+                            </div>
+                        </div>
+
                         <hr />
 
                         <h6>Final Decision</h6>

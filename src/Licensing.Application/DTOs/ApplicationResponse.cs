@@ -16,6 +16,21 @@ public class ApplicationResponse
     
     public List<DocumentResponse> Documents { get; set; } = new();
     public List<FeedbackResponse> Feedbacks { get; set; } = new();
+
+    public string GetStatusLabel(bool isOfficer)
+    {
+        return Status switch
+        {
+            "ApplicationReceived" => isOfficer ? "Application Received" : "Submitted",
+            "UnderReview" => "Under Review",
+            "PendingPreSiteResubmission" => "Pending Pre-Site Resubmission",
+            "PreSiteResubmitted" => "Pre-Site Resubmitted",
+            "PendingApproval" => isOfficer ? "Route to Approval" : "Pending Approval",
+            "Approved" => "Approved",
+            "Rejected" => "Rejected",
+            _ => Status
+        };
+    }
 }
 
 public class DocumentResponse

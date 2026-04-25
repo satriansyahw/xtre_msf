@@ -44,6 +44,15 @@ dotnet test tests/Licensing.Tests.Unit
    dotnet test tests/Licensing.Tests.E2E
    ```
 
+## 🔮 What I Would Do Next (Gaps & Priorities)
+While the MVP covers the core requirements for Use Case 1 and 2, the following features would be next in a production roadmap:
+1.  **Identity & Access Management (IAM)**: Implement real authentication using OIDC/OAuth2 (e.g., Entra ID or Auth0) to secure the persona-based views.
+2.  **Use Case 3 (On-Site Assessment)**: Complete the mobile-first inspection checklist and post-site clarification workflow.
+3.  **Real-Time Notifications**: Integrate SignalR to notify Officers when resubmissions occur and Operators when decisions are made.
+4.  **Blob Storage Integration**: Migrate from local file storage to a cloud-native solution like Azure Blob Storage or AWS S3 for scalability.
+5.  **Audit Trail UI**: Add a dedicated "Audit History" tab for each application to show every status change and internal note in a timeline view.
+6.  **Advanced Version Diffing**: Improve the JSON comparison UI to highlight specific field changes rather than just showing raw side-by-side JSON.
+
 ## 🤖 AI Usage Disclosure
 This project was developed with the assistance of **Antigravity (AI Coding Assistant)**.
 - **Role**: AI assisted in architectural planning, boilerplate generation, UI styling, and implementing the background verification service.
