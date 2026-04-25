@@ -1,31 +1,32 @@
 # Project Scope & Technical Architecture
 
-## Overview
-The Regulatory and Licensing System is a modern, web-based platform designed to automate and streamline the application process for business licenses. It features a dual-persona workflow (Operator and Officer) with integrated AI-driven document verification.
+## Technical Justification
+The technology stack was selected to balance enterprise-grade robustness with the rapid development needs of a technical assessment:
 
-## Technology Stack
-- **Frontend**: Blazor WebAssembly (.NET 10)
-- **Backend**: ASP.NET Core Web API (.NET 10)
-- **Persistence**: SQLite with Entity Framework Core
-- **Styling**: Vanilla CSS with Bootstrap 5
-- **Testing**: xUnit (Unit), Playwright (E2E)
+- **C# & .NET 10**: Chosen for its strong type safety, high performance, and mature ecosystem. Using a single language across the entire stack (Frontend to Backend) reduces context switching and enables shared Domain models.
+- **Blazor WebAssembly**: Provides a rich, interactive Single Page Application (SPA) experience. It allows for C# execution in the browser, enabling complex UI logic (like the Version Diff Viewer) to be written with the same safety as backend code.
+- **SQLite**: A lightweight, zero-configuration database that is perfect for portability. It allows the entire system to be run without external dependencies (like SQL Server or Docker), making it ideal for demonstration and local assessment.
+- **Bootstrap 5 & Vanilla CSS**: Provides a clean, responsive layout system while allowing for deep aesthetic customization through custom CSS tokens.
 
-## Key Technical Features
+## Tech Stack & Architecture Summary
+This system follows a **Clean Architecture** pattern implemented via a **Blazor WebAssembly Hosted** model. The solution is decoupled into Domain, Application, Infrastructure, and API layers to ensure clear separation of concerns and high testability. The backend serves as a stateless RESTful API, while the frontend maintains a reactive state managed by localized services, ensuring a responsive and modern user experience.
 
-### 1. Snapshot-based Versioning
-Every application submission and resubmission creates a full immutable snapshot of the application data. This allows:
-- Officers to compare changes between versions.
-- Historical auditing of exactly what was submitted at any point in time.
+## Feature Scope
+The following core functional requirements have been implemented:
 
-### 2. AI-Driven Verification (Mocked)
-The system integrates a background verification service that simulates AI analysis of uploaded documents:
-- **Async Processing**: Submissions are accepted immediately, while AI status updates happen in the background.
-- **Feedback Loop**: Flagged documents are highlighted to Officers for manual verification.
+- **Use Case 1 (Application Versioning)**: Full implementation of immutable snapshots. Every resubmission creates a new version, allowing for historical comparisons.
+- **Use Case 2 (Review Workspace)**: A dedicated workspace for Officers to provide field-level feedback, manage status transitions, and view document AI status.
+- **Use Case 3 (Audit Trail & Timeline)**: A comprehensive lifecycle tracking system that records every status change, internal comment, and persona interaction.
 
-### 3. Dual-Persona Workflow
-A built-in Persona Switcher allows seamless toggling between roles during development and demonstration:
-- **Operator**: Application submission, document management, and addressing feedback.
-- **Officer**: Queue management, field-level feedback, and final decision-making (Approve/Reject/Resubmit).
+## Deferred & Mocked Features
+- **Authentication**: Real JWT/Identity implementation is deferred in favor of a **Persona Switcher**. This allows evaluators to toggle roles instantly without login overhead, focusing the assessment on business logic.
+- **AI Processing**: The AI document verification is **mocked** via an asynchronous background service. This demonstrates the system's ability to handle long-running async tasks and UI polling without requiring expensive external AI APIs.
+- **File Storage**: Documents are stored in the local file system (`wwwroot/Uploads`) rather than Cloud Storage (S3/Azure Blob) to maintain the "zero-dependency" requirement for local execution.
+
+## Assumptions
+- **Single-User Demo**: The system assumes a single active operator/officer for the purpose of the demonstration, although the underlying data model supports multi-tenancy.
+- **Simplified Site Visits**: The "Site Visit" phase is represented in the state machine and audit trail but does not include a full scheduling calendar or geolocation tracking.
+- **Document Validity**: The system assumes documents are standard image or PDF files (max 10MB) as per the common regulatory requirements.
 
 ## State Machine
 Applications follow a strict state transition model:
@@ -33,9 +34,4 @@ Applications follow a strict state transition model:
 2. `UnderReview` (Officer opens)
 3. `PendingPreSiteResubmission` / `PendingPostSiteResubmission` (Officer requests info)
 4. `PreSiteResubmitted` / `PostSiteClarificationResubmitted` (Operator updates)
-5. `Approved` / `Rejected` (Final)
-
-## Security & Reliability
-- **Reference Generation**: Robust, unique reference numbers generated using `LIC-YYYYMMDDHHMMSS-RANDOM`.
-- **Validation**: Strict server-side validation of status transitions to prevent unauthorized state changes.
-- **Memory Efficiency**: File uploads use streaming to handle large documents without memory spikes.
+5. `Approved` / `Rejected` (Final decisions)
