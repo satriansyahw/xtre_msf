@@ -1,5 +1,6 @@
 using Licensing.Application.Interfaces;
 using Licensing.Domain.Entities;
+using Licensing.Domain.Constants;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -27,18 +28,16 @@ public class UploadsController : ControllerBase
         if (file == null || file.Length == 0)
             return BadRequest("No file uploaded.");
 
-        using var memoryStream = new MemoryStream();
-        await file.CopyToAsync(memoryStream);
-        var content = memoryStream.ToArray();
-
-        var filePath = await _fileStorageService.SaveFileAsync(content, file.FileName, file.ContentType);
+        // Fixed: Streaming file directly to storage service instead of loading into byte[]
+        using var stream = file.OpenReadStream();
+        var filePath = await _fileStorageService.SaveFileAsync(stream, file.FileName, file.ContentType);
 
         var document = new Document
         {
             FileName = file.FileName,
             FilePath = filePath,
             ContentType = file.ContentType,
-            AIStatus = "Pending"
+            AIStatus = AIVerificationStatus.Pending // Using constant
         };
 
         _dbContext.Documents.Add(document);

@@ -1,4 +1,5 @@
 using Licensing.Application.Interfaces;
+using Licensing.Domain.Constants;
 using Licensing.Domain.Entities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -31,8 +32,9 @@ public class MockAIVerificationService : BackgroundService
                 using var scope = _serviceProvider.CreateScope();
                 var dbContext = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
 
+                // Fixed: Using constants instead of magic strings
                 var pendingDocuments = await dbContext.Documents
-                    .Where(d => d.AIStatus == "Pending")
+                    .Where(d => d.AIStatus == AIVerificationStatus.Pending)
                     .ToListAsync(stoppingToken);
 
                 foreach (var doc in pendingDocuments)
@@ -41,7 +43,10 @@ public class MockAIVerificationService : BackgroundService
                     await Task.Delay(5000, stoppingToken);
 
                     // Randomly verify or flag (80% verified, 20% flagged)
-                    doc.AIStatus = Random.Shared.Next(0, 100) < 80 ? "Verified" : "Flagged";
+                    doc.AIStatus = Random.Shared.Next(0, 100) < 80 
+                        ? AIVerificationStatus.Verified 
+                        : AIVerificationStatus.Flagged;
+                    
                     doc.UpdatedAt = DateTime.UtcNow;
                     
                     _logger.LogInformation("Document {DocId} ({FileName}) AI status updated to {Status}", 
