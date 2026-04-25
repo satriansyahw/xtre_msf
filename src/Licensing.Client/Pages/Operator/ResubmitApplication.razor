@@ -47,18 +47,18 @@
                                     <div class="row mb-3">
                                         <div class="col-md-6">
                                             <label class="form-label fw-bold">Applicant Name</label>
-                                            <InputText class="form-control @(IsFieldFlagged("ApplicantName") ? "border-danger bg-danger bg-opacity-10" : "")" @bind-Value="request.ApplicantName" />
+                                            <InputText class="@GetFieldClass("ApplicantName")" @bind-Value="request.ApplicantName" />
                                             @if (IsFieldFlagged("ApplicantName")) { <small class="text-danger">@GetFieldFeedback("ApplicantName")</small> }
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label fw-bold">Business Name</label>
-                                            <InputText class="form-control @(IsFieldFlagged("BusinessName") ? "border-danger bg-danger bg-opacity-10" : "")" @bind-Value="request.BusinessName" />
+                                            <InputText class="@GetFieldClass("BusinessName")" @bind-Value="request.BusinessName" />
                                             @if (IsFieldFlagged("BusinessName")) { <small class="text-danger">@GetFieldFeedback("BusinessName")</small> }
                                         </div>
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label fw-bold">Contact Email</label>
-                                        <InputText class="form-control @(IsFieldFlagged("ContactEmail") ? "border-danger bg-danger bg-opacity-10" : "")" @bind-Value="request.ContactEmail" />
+                                        <InputText class="@GetFieldClass("ContactEmail")" @bind-Value="request.ContactEmail" />
                                         @if (IsFieldFlagged("ContactEmail")) { <small class="text-danger">@GetFieldFeedback("ContactEmail")</small> }
                                     </div>
                                 </div>
@@ -81,12 +81,12 @@
                                     <div class="row mb-3">
                                         <div class="col-md-8">
                                             <label class="form-label fw-bold">Business Address</label>
-                                            <input type="text" class="form-control @(IsFieldFlagged("BusinessAddress") ? "border-danger bg-danger bg-opacity-10" : "")" @bind="businessAddress" />
+                                            <input type="text" class="@GetFieldClass("BusinessAddress")" @bind="businessAddress" />
                                             @if (IsFieldFlagged("BusinessAddress")) { <small class="text-danger">@GetFieldFeedback("BusinessAddress")</small> }
                                         </div>
                                         <div class="col-md-4">
                                             <label class="form-label fw-bold">Employee Count</label>
-                                            <input type="number" class="form-control @(IsFieldFlagged("EmployeeCount") ? "border-danger bg-danger bg-opacity-10" : "")" @bind="employeeCount" />
+                                            <input type="number" class="@GetFieldClass("EmployeeCount")" @bind="employeeCount" />
                                             @if (IsFieldFlagged("EmployeeCount")) { <small class="text-danger">@GetFieldFeedback("EmployeeCount")</small> }
                                         </div>
                                     </div>
@@ -109,7 +109,7 @@
                                 <div class="accordion-body bg-light bg-opacity-10">
                                     <div class="mb-4">
                                         <label class="form-label fw-bold">Additional Documents</label>
-                                        <InputFile class="form-control @(IsFieldFlagged("Documents") ? "border-danger bg-danger bg-opacity-10" : "")" OnChange="HandleFileSelected" multiple />
+                                        <InputFile class="@GetFieldClass("Documents")" OnChange="HandleFileSelected" multiple />
                                         @if (IsFieldFlagged("Documents")) { <small class="text-danger">@GetFieldFeedback("Documents")</small> }
                                         
                                         @if (uploadedDocuments.Any())
@@ -184,6 +184,9 @@
 
     private string GetFieldFeedback(string fieldName) => 
         app?.Feedbacks?.FirstOrDefault(f => f.FieldName == fieldName && !f.IsResolved)?.Comment ?? "";
+
+    private string GetFieldClass(string fieldName) =>
+        $"form-control {(IsFieldFlagged(fieldName) ? "border-danger bg-danger bg-opacity-10" : "")}";
 
     private bool IsSectionFlagged(string section)
     {
