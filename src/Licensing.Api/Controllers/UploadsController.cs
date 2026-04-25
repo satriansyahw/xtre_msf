@@ -45,4 +45,18 @@ public class UploadsController : ControllerBase
 
         return Ok(new { document.Id, document.FileName, document.AIStatus });
     }
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetStatus(Guid id)
+    {
+        var document = await _dbContext.Documents.FindAsync(id);
+        if (document == null) return NotFound();
+
+        return Ok(new DocumentResponse
+        {
+            Id = document.Id,
+            FileName = document.FileName,
+            AIStatus = document.AIStatus
+        });
+    }
 }

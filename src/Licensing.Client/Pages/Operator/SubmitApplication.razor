@@ -77,8 +77,17 @@
                             @foreach (var doc in uploadedDocuments)
                             {
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    @doc.FileName
-                                    <span class="badge bg-secondary">Uploaded</span>
+                                    <div>
+                                        <i class="bi bi-file-earmark-check me-2 text-primary"></i>
+                                        @doc.FileName
+                                    </div>
+                                    <span class="badge @GetAIStatusBadgeClass(doc.AIStatus) px-3 py-2">
+                                        @if (doc.AIStatus == "Pending")
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                        }
+                                        @doc.AIStatus
+                                    </span>
                                 </li>
                             }
                         </ul>
@@ -155,9 +164,51 @@
                 {
                     uploadedDocuments.Add(result);
                     request.DocumentIds.Add(result.Id);
+                    _ = StartPolling(); // Fire and forget polling
                 }
             }
         }
+    }
+
+    private bool isPolling = false;
+    private async Task StartPolling()
+    {
+        if (isPolling) return;
+        isPolling = true;
+
+        while (uploadedDocuments.Any(d => d.AIStatus == "Pending"))
+        {
+            await Task.Delay(2000);
+            for (int i = 0; i < uploadedDocuments.Count; i++)
+            {
+                if (uploadedDocuments[i].AIStatus == "Pending")
+                {
+                    try 
+                    {
+                        var latest = await Http.GetFromJsonAsync<DocumentResponse>($"api/uploads/{uploadedDocuments[i].Id}");
+                        if (latest != null)
+                        {
+                            uploadedDocuments[i].AIStatus = latest.AIStatus;
+                        }
+                    }
+                    catch { /* Ignore temporary network issues */ }
+                }
+            }
+            StateHasChanged();
+        }
+
+        isPolling = false;
+    }
+
+    private string GetAIStatusBadgeClass(string status)
+    {
+        return status switch
+        {
+            "Verified" => "bg-success",
+            "Flagged" => "bg-danger",
+            "Pending" => "bg-info text-dark",
+            _ => "bg-secondary"
+        };
     }
 
     private async Task Submit()
