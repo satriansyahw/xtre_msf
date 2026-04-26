@@ -30,8 +30,8 @@ public class PersonaService
         if (Enum.TryParse<Persona>(saved, out var persona))
         {
             CurrentPersona = persona;
-            OnPersonaChanged?.Invoke();
         }
+        OnPersonaChanged?.Invoke();
     }
 
     public async Task SwitchTo(Persona persona)

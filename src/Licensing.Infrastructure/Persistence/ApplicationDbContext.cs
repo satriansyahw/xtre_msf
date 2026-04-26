@@ -14,6 +14,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<Document> Documents => Set<Document>();
     public DbSet<Feedback> Feedbacks => Set<Feedback>();
     public DbSet<ApplicationSnapshot> ApplicationSnapshots => Set<ApplicationSnapshot>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

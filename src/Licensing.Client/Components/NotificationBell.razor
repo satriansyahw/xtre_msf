@@ -1,0 +1,114 @@
+@using Licensing.Application.DTOs
+@using Licensing.Client.Services
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@implements IDisposable
+
+<div class="dropdown me-2">
+    <button class="btn btn-light position-relative p-2 rounded-circle shadow-sm" type="button" id="notificationBell" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="bi bi-bell fs-5"></i>
+        @if (unreadCount > 0)
+        {
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light" style="font-size: 0.6rem;">
+                @(unreadCount > 9 ? "9+" : unreadCount)
+            </span>
+        }
+    </button>
+    <div class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 p-0" aria-labelledby="notificationBell" style="width: 320px; max-height: 400px; overflow-y: auto;">
+        <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-light">
+            <h6 class="mb-0 fw-bold">Notifications</h6>
+            @if (unreadCount > 0)
+            {
+                <button class="btn btn-link btn-sm p-0 text-decoration-none" @onclick="MarkAllAsRead">Mark all as read</button>
+            }
+        </div>
+        <div class="list-group list-group-flush">
+            @if (notifications == null || !notifications.Any())
+            {
+                <div class="p-4 text-center text-muted">
+                    <i class="bi bi-bell-slash display-6 d-block mb-2 opacity-25"></i>
+                    <small>No new notifications</small>
+                </div>
+            }
+            else
+            {
+                @foreach (var n in notifications)
+                {
+                    <button class="list-group-item list-group-item-action p-3 @(n.IsRead ? "opacity-75" : "bg-primary bg-opacity-10 fw-bold")" @onclick="() => HandleNotificationClick(n)">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="badge bg-primary rounded-pill small" style="font-size: 0.6rem;">@n.Persona</span>
+                            <small class="text-muted" style="font-size: 0.6rem;">@n.CreatedAt.ToLocalTime().ToString("g")</small>
+                        </div>
+                        <p class="mb-0 small text-wrap">@n.Message</p>
+                    </button>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Persona { get; set; } = "";
+    private List<NotificationResponse>? notifications;
+    private int unreadCount => notifications?.Count(n => !n.IsRead) ?? 0;
+    private System.Threading.Timer? timer;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadNotifications();
+    }
+
+    protected override void OnInitialized()
+    {
+        timer = new System.Threading.Timer(async _ => await InvokeAsync(async () => 
+        {
+            await LoadNotifications();
+            StateHasChanged();
+        }), null, 5000, 10000);
+    }
+
+    private async Task LoadNotifications()
+    {
+        try 
+        {
+            notifications = await Http.GetFromJsonAsync<List<NotificationResponse>>($"api/applications/notifications?persona={Persona}");
+        }
+        catch { /* Silently fail for polling */ }
+    }
+
+    private async Task MarkAllAsRead()
+    {
+        await Http.PostAsync($"api/applications/notifications/read-all?persona={Persona}", null);
+        if (notifications != null)
+        {
+            foreach (var n in notifications) n.IsRead = true;
+        }
+    }
+
+    private async Task HandleNotificationClick(NotificationResponse n)
+    {
+        if (!n.IsRead)
+        {
+            await Http.PostAsync($"api/applications/notifications/{n.Id}/read", null);
+            n.IsRead = true;
+        }
+
+        // Navigate to specific details
+        string targetUrl;
+        if (Persona == "Operator")
+        {
+            targetUrl = $"/operator/details/{n.ApplicationId}";
+        }
+        else
+        {
+            targetUrl = $"/officer/review/{n.ApplicationId}";
+        }
+
+        Navigation.NavigateTo(targetUrl);
+    }
+
+    public void Dispose()
+    {
+        timer?.Dispose();
+    }
+}

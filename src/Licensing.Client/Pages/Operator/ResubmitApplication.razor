@@ -30,6 +30,7 @@
                 </div>
 
                 <EditForm Model="request" OnValidSubmit="HandleResubmit">
+                    <DataAnnotationsValidator />
                     <div class="accordion mb-4" id="resubmitAccordion">
                         <!-- Section 1: Applicant Identity -->
                         <div class="accordion-item shadow-sm border-0 mb-2">
@@ -46,20 +47,23 @@
                                 <div class="accordion-body bg-light bg-opacity-10">
                                     <div class="row mb-3">
                                         <div class="col-md-6">
-                                            <label class="form-label fw-bold">Applicant Name</label>
+                                            <label class="form-label fw-bold">Applicant Name <span class="text-danger">*</span></label>
                                             <InputText class="@GetFieldClass("ApplicantName")" @bind-Value="request.ApplicantName" />
-                                            @if (IsFieldFlagged("ApplicantName")) { <small class="text-danger">@GetFieldFeedback("ApplicantName")</small> }
+                                            <ValidationMessage For="@(() => request.ApplicantName)" />
+                                            @if (IsFieldFlagged("ApplicantName")) { <small class="text-danger d-block mt-1"><strong>Officer Feedback:</strong> @GetFieldFeedback("ApplicantName")</small> }
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label fw-bold">Business Name</label>
+                                            <label class="form-label fw-bold">Business Name <span class="text-danger">*</span></label>
                                             <InputText class="@GetFieldClass("BusinessName")" @bind-Value="request.BusinessName" />
-                                            @if (IsFieldFlagged("BusinessName")) { <small class="text-danger">@GetFieldFeedback("BusinessName")</small> }
+                                            <ValidationMessage For="@(() => request.BusinessName)" />
+                                            @if (IsFieldFlagged("BusinessName")) { <small class="text-danger d-block mt-1"><strong>Officer Feedback:</strong> @GetFieldFeedback("BusinessName")</small> }
                                         </div>
                                     </div>
                                     <div class="mb-3">
-                                        <label class="form-label fw-bold">Contact Email</label>
+                                        <label class="form-label fw-bold">Contact Email <span class="text-danger">*</span></label>
                                         <InputText class="@GetFieldClass("ContactEmail")" @bind-Value="request.ContactEmail" />
-                                        @if (IsFieldFlagged("ContactEmail")) { <small class="text-danger">@GetFieldFeedback("ContactEmail")</small> }
+                                        <ValidationMessage For="@(() => request.ContactEmail)" />
+                                        @if (IsFieldFlagged("ContactEmail")) { <small class="text-danger d-block mt-1"><strong>Officer Feedback:</strong> @GetFieldFeedback("ContactEmail")</small> }
                                     </div>
                                 </div>
                             </div>
@@ -80,14 +84,16 @@
                                 <div class="accordion-body bg-light bg-opacity-10">
                                     <div class="row mb-3">
                                         <div class="col-md-8">
-                                            <label class="form-label fw-bold">Business Address</label>
+                                            <label class="form-label fw-bold">Business Address <span class="text-danger">*</span></label>
                                             <input type="text" class="@GetFieldClass("BusinessAddress")" @bind="businessAddress" />
-                                            @if (IsFieldFlagged("BusinessAddress")) { <small class="text-danger">@GetFieldFeedback("BusinessAddress")</small> }
+                                            @if (string.IsNullOrWhiteSpace(businessAddress)) { <div class="text-danger small">Address is required.</div> }
+                                            @if (IsFieldFlagged("BusinessAddress")) { <small class="text-danger d-block mt-1"><strong>Officer Feedback:</strong> @GetFieldFeedback("BusinessAddress")</small> }
                                         </div>
                                         <div class="col-md-4">
-                                            <label class="form-label fw-bold">Employee Count</label>
+                                            <label class="form-label fw-bold">Employee Count <span class="text-danger">*</span></label>
                                             <input type="number" class="@GetFieldClass("EmployeeCount")" @bind="employeeCount" />
-                                            @if (IsFieldFlagged("EmployeeCount")) { <small class="text-danger">@GetFieldFeedback("EmployeeCount")</small> }
+                                            @if (employeeCount <= 0) { <div class="text-danger small">Minimum 1 employee.</div> }
+                                            @if (IsFieldFlagged("EmployeeCount")) { <small class="text-danger d-block mt-1"><strong>Officer Feedback:</strong> @GetFieldFeedback("EmployeeCount")</small> }
                                         </div>
                                     </div>
                                 </div>
@@ -110,7 +116,7 @@
                                     <div class="mb-4">
                                         <label class="form-label fw-bold">Additional Documents</label>
                                         <InputFile class="@GetFieldClass("Documents")" OnChange="HandleFileSelected" multiple />
-                                        @if (IsFieldFlagged("Documents")) { <small class="text-danger">@GetFieldFeedback("Documents")</small> }
+                                        @if (IsFieldFlagged("Documents")) { <small class="text-danger d-block mt-1"><strong>Officer Feedback:</strong> @GetFieldFeedback("Documents")</small> }
                                         
                                         @if (uploadedDocuments.Any())
                                         {
@@ -171,8 +177,8 @@
                 var data = JsonSerializer.Deserialize<Dictionary<string, object>>(app.DataJson);
                 if (data != null)
                 {
-                    businessAddress = data.ContainsKey("BusinessAddress") ? data["BusinessAddress"].ToString() : "";
-                    employeeCount = data.ContainsKey("EmployeeCount") ? int.Parse(data["EmployeeCount"].ToString()) : 0;
+                    businessAddress = data.ContainsKey("BusinessAddress") ? data["BusinessAddress"]?.ToString() ?? "" : "";
+                    employeeCount = data.ContainsKey("EmployeeCount") && data["EmployeeCount"] != null ? int.Parse(data["EmployeeCount"]!.ToString()!) : 0;
                 }
             }
             catch { }

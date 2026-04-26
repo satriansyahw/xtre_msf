@@ -1,0 +1,155 @@
+--
+-- PostgreSQL database dump
+--
+
+\restrict KsfKBsgdn05FtHACAVbfgRv0xmqLXaAgAwxzFsmLAQoKbdETNGHUdUJ8JH3th3M
+
+-- Dumped from database version 18.1
+-- Dumped by pg_dump version 18.1
+
+-- Started on 2026-01-29 11:55:15
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+SET default_tablespace = '';
+
+SET default_table_access_method = heap;
+
+--
+-- TOC entry 221 (class 1259 OID 16569)
+-- Name: transactions; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.transactions (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    email text NOT NULL,
+    nama text NOT NULL,
+    alamat text,
+    tanggal date NOT NULL,
+    deskripsi text,
+    qty_in integer NOT NULL,
+    amount_in numeric(18,2) DEFAULT 0 NOT NULL,
+    qty_out integer NOT NULL,
+    amount_out numeric(18,2) DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT amount_direction_check CHECK ((((amount_in > (0)::numeric) AND (amount_out = (0)::numeric)) OR ((amount_in = (0)::numeric) AND (amount_out > (0)::numeric)))),
+    CONSTRAINT transactions_amount_in_check CHECK ((amount_in >= (0)::numeric)),
+    CONSTRAINT transactions_amount_out_check CHECK ((amount_out >= (0)::numeric)),
+    CONSTRAINT transactions_qty_in_check CHECK ((qty_in > 0)),
+    CONSTRAINT transactions_qty_out_check CHECK ((qty_out > 0))
+);
+
+
+ALTER TABLE public.transactions OWNER TO postgres;
+
+--
+-- TOC entry 5063 (class 0 OID 16569)
+-- Dependencies: 221
+-- Data for Name: transactions; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.transactions (id, email, nama, alamat, tanggal, deskripsi, qty_in, amount_in, qty_out, amount_out, created_at, updated_at) FROM stdin;
+63efce4c-6fc7-4a02-af1a-1b1c99df01de	eko@mail.com	Eko Nugroho	Jl. Kenanga No. 3	2026-01-12	Laundry express	1	40000.00	1	0.00	2026-01-26 14:06:05.090107+07	2026-01-26 14:06:05.090107+07
+890146f8-369b-4133-be79-a1bd1644cd9f	admin@laundry.com	Admin Laundry	Gudang Laundry	2026-01-12	Beli deterjen & pewangi	1	0.00	1	60000.00	2026-01-26 14:06:05.090107+07	2026-01-26 14:06:05.090107+07
+ec6ebb16-72e2-4279-996f-9acec4592dc3	fitri@mail.com	Fitri Aulia	Jl. Mawar No. 12	2026-01-13	Cuci kiloan 6kg	6	60000.00	1	0.00	2026-01-26 14:06:05.090107+07	2026-01-26 14:06:05.090107+07
+aa0cc406-4b22-4c5d-92a3-7ade816f7a95	gina@mail.com	Gina Lestari	Jl. Dahlia No. 7	2026-01-13	Setrika saja	2	20000.00	1	0.00	2026-01-26 14:06:05.090107+07	2026-01-26 14:06:05.090107+07
+b24988af-5759-4964-af4e-37ced8841da4	admin@laundry.com	Admin Laundry	Gudang Laundry	2026-01-14	Bayar listrik laundry	1	0.00	1	150000.00	2026-01-26 14:06:05.090107+07	2026-01-26 14:06:05.090107+07
+81b39ce0-bb36-4825-8f1e-9286a4acdfa6	heri@mail.com	Heri Kurniawan	Jl. Flamboyan No. 6	2026-01-14	Cuci + setrika 7kg	7	105000.00	1	0.00	2026-01-26 14:06:05.090107+07	2026-01-26 14:06:05.090107+07
+41be44a4-02ab-4e1f-b9dc-d167950c4e70	tedymenong@gmail.com	Tedy Meong	Jl. Kucing No. 1	2026-01-29	Cuci kiloan 3kg	3	30000.00	1	0.00	2026-01-29 03:13:07.149681+07	2026-01-29 03:20:30.050625+07
+8ff1bafa-c4a8-4038-8b85-dc78e3043cf3	tedymenong@gmail.com	Tedy Meong	Jl. Kucing No. 1	2026-01-29	Cuci + setrika 5kg	5	75000.00	1	0.00	2026-01-29 03:13:07.149681+07	2026-01-29 03:20:30.050625+07
+3df230b0-1d9b-4343-8027-1339787b219b	tedymenong@gmail.com	Tedy Meong	Jl. Kucing No. 1	2026-01-29	Dry clean jas	1	50000.00	1	0.00	2026-01-29 03:13:07.149681+07	2026-01-29 03:20:30.050625+07
+d01d4359-7b06-44a2-aa47-ab98ef4ed1fe	tedymenong@gmail.com	Tedy Meong	Jl. Kucing No. 1	2026-01-29	Cuci selimut	2	80000.00	1	0.00	2026-01-29 03:13:07.149681+07	2026-01-29 03:20:30.050625+07
+958942c4-f340-47af-94d8-8efcee1543e8	tedymenong@gmail.com	Tedy Meong	Jl. Kucing No. 1	2026-01-29	Laundry express	1	40000.00	1	0.00	2026-01-29 03:13:07.149681+07	2026-01-29 03:20:30.050625+07
+a5bd4d25-c045-47fc-87b7-015cb3e8b2aa	tedymenong@gmail.com	Tedy Meong	Jl. Kucing No. 1	2026-01-30	Cuci kiloan 4kg	4	40000.00	1	0.00	2026-01-29 03:13:07.149681+07	2026-01-29 03:20:30.050625+07
+baefe6cf-4958-4d4d-8b2b-c8192e072c0f	tedymenong@gmail.com	Tedy Meong	Jl. Kucing No. 1	2026-01-30	Setrika saja	2	20000.00	1	0.00	2026-01-29 03:13:07.149681+07	2026-01-29 03:20:30.050625+07
+774e5823-ad25-4120-bafd-dc711c85a3a1	tedymenong@gmail.com	Tedy Meong	Jl. Kucing No. 1	2026-01-30	Cuci karpet	1	90000.00	1	0.00	2026-01-29 03:13:07.149681+07	2026-01-29 03:20:30.050625+07
+d770c6c6-9289-4303-b306-bcaaff2a8518	tedymenong@gmail.com	Tedy Meong	Jl. Kucing No. 1	2026-01-30	Laundry express	1	45000.00	1	0.00	2026-01-29 03:13:07.149681+07	2026-01-29 03:20:30.050625+07
+0d75d152-3404-4455-8ea9-67367ab0b00a	tedymenong@gmail.com	Tedy Meong	Jl. Kucing No. 1	2026-01-30	Cuci bedcover	2	70000.00	1	0.00	2026-01-29 03:13:07.149681+07	2026-01-29 03:20:30.050625+07
+02ecedb0-06b2-460b-8fc8-b4167bb30cbf	tedymenong@gmail.com	Tedy Meong	Jl. Kucing No. 1	2026-01-31	Cuci kiloan 6kg	6	60000.00	1	0.00	2026-01-29 03:13:07.149681+07	2026-01-29 03:20:30.050625+07
+3583589d-f725-4ad7-8112-a7749b812088	tedymenong@gmail.com	Tedy Meong	Jl. Kucing No. 1	2026-01-31	Dry clean gaun	1	85000.00	1	0.00	2026-01-29 03:13:07.149681+07	2026-01-29 03:20:30.050625+07
+abf253e9-c163-4cfd-b10f-8adef89b6aa7	tedymenong@gmail.com	Tedy Meong	Jl. Kucing No. 1	2026-01-31	Setrika 3kg	3	30000.00	1	0.00	2026-01-29 03:13:07.149681+07	2026-01-29 03:20:30.050625+07
+380ad81c-3a56-4da8-bb73-9bdac560a7b6	tedymenong@gmail.com	Tedy Meong	Jl. Kucing No. 1	2026-01-31	Cuci sepatu	1	25000.00	1	0.00	2026-01-29 03:13:07.149681+07	2026-01-29 03:20:30.050625+07
+f2874a00-ec3c-4ab5-891c-12e4c636017f	tedymenong@gmail.com	Tedy Meong	Jl. Kucing No. 1	2026-01-31	Laundry express	1	50000.00	1	0.00	2026-01-29 03:13:07.149681+07	2026-01-29 03:20:30.050625+07
+081afc13-803f-4be4-945b-94eda0feb90a	owner@laundry.com	Andi Saputra	Jl. Merdeka No. 10	2026-01-29	Cuci kiloan 3kg	3	30000.00	1	0.00	2026-01-26 14:06:05.090107+07	2026-01-29 10:41:10.357174+07
+899f1a0b-d1fc-4220-a574-d649db7d0055	owner@laundry.com	Budi Hartono	Jl. Sudirman No. 5	2026-01-29	Cuci + setrika 5kg	5	75000.00	1	0.00	2026-01-26 14:06:05.090107+07	2026-01-29 10:41:10.357174+07
+5500f06e-015c-47c5-ab01-f28cd374ac8e	owner@laundry.com	Citra Dewi	Jl. Melati No. 2	2026-01-29	Dry clean jas	1	50000.00	1	0.00	2026-01-26 14:06:05.090107+07	2026-01-29 10:41:10.357174+07
+847b9127-9984-4ffb-a724-3707aafb29b1	owner@laundry.com	Dina Pratiwi	Jl. Anggrek No. 8	2026-01-29	Cuci selimut	2	80000.00	1	0.00	2026-01-26 14:06:05.090107+07	2026-01-29 10:41:10.357174+07
+\.
+
+
+--
+-- TOC entry 4914 (class 2606 OID 16595)
+-- Name: transactions transactions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.transactions
+    ADD CONSTRAINT transactions_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 4908 (class 1259 OID 16596)
+-- Name: idx_transactions_amount_in; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_transactions_amount_in ON public.transactions USING btree (amount_in) WITH (fillfactor='100', deduplicate_items='true') WHERE (amount_in > (0)::numeric);
+
+
+--
+-- TOC entry 4909 (class 1259 OID 16597)
+-- Name: idx_transactions_amount_out; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_transactions_amount_out ON public.transactions USING btree (amount_out) WITH (fillfactor='100', deduplicate_items='true') WHERE (amount_out > (0)::numeric);
+
+
+--
+-- TOC entry 4910 (class 1259 OID 16598)
+-- Name: idx_transactions_email; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_transactions_email ON public.transactions USING btree (email) WITH (fillfactor='100', deduplicate_items='true');
+
+
+--
+-- TOC entry 4911 (class 1259 OID 16599)
+-- Name: idx_transactions_email_tanggal; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_transactions_email_tanggal ON public.transactions USING btree (email, tanggal) WITH (fillfactor='100', deduplicate_items='true');
+
+
+--
+-- TOC entry 4912 (class 1259 OID 16600)
+-- Name: idx_transactions_tanggal; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_transactions_tanggal ON public.transactions USING btree (tanggal) WITH (fillfactor='100', deduplicate_items='true');
+
+
+--
+-- TOC entry 4915 (class 2620 OID 16601)
+-- Name: transactions trg_transactions_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER trg_transactions_updated_at BEFORE UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+-- Completed on 2026-01-29 11:55:16
+
+--
+-- PostgreSQL database dump complete
+--
+
+\unrestrict KsfKBsgdn05FtHACAVbfgRv0xmqLXaAgAwxzFsmLAQoKbdETNGHUdUJ8JH3th3M
+

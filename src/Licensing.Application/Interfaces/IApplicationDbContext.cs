@@ -11,6 +11,7 @@ public interface IApplicationDbContext
     DbSet<Document> Documents { get; }
     DbSet<Feedback> Feedbacks { get; }
     DbSet<ApplicationSnapshot> ApplicationSnapshots { get; }
+    DbSet<Notification> Notifications { get; }
     
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

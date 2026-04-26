@@ -33,12 +33,7 @@ public class ApplicationResponse
     }
 }
 
-public class DocumentResponse
-{
-    public Guid Id { get; set; }
-    public string FileName { get; set; } = string.Empty;
-    public string AIStatus { get; set; } = string.Empty;
-}
+
 
 public class FeedbackResponse
 {

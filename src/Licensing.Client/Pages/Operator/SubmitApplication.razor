@@ -1,5 +1,6 @@
 @page "/operator/submit"
 @using Licensing.Application.DTOs
+@using System.Text.Json
 @inject HttpClient Http
 @inject NavigationManager Navigation
 
@@ -34,16 +35,28 @@
                 <div class="step-content">
                     <h5>Step 1: Applicant Information</h5>
                     <div class="mb-3">
-                        <label class="form-label">Applicant Full Name</label>
-                        <input type="text" class="form-control" @bind="request.ApplicantName" placeholder="e.g. John Doe" />
+                        <label class="form-label">Applicant Full Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control @GetValidationClass(request.ApplicantName)" @bind="request.ApplicantName" placeholder="e.g. John Doe" />
+                        @if (string.IsNullOrWhiteSpace(request.ApplicantName) && showValidationErrors)
+                        {
+                            <div class="invalid-feedback d-block">Applicant name is required.</div>
+                        }
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Business Name</label>
-                        <input type="text" class="form-control" @bind="request.BusinessName" placeholder="e.g. Acme Corp" />
+                        <label class="form-label">Business Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control @GetValidationClass(request.BusinessName)" @bind="request.BusinessName" placeholder="e.g. Acme Corp" />
+                        @if (string.IsNullOrWhiteSpace(request.BusinessName) && showValidationErrors)
+                        {
+                            <div class="invalid-feedback d-block">Business name is required.</div>
+                        }
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Contact Email</label>
-                        <input type="email" class="form-control" @bind="request.ContactEmail" placeholder="john@example.com" />
+                        <label class="form-label">Contact Email <span class="text-danger">*</span></label>
+                        <input type="email" class="form-control @GetValidationClass(request.ContactEmail)" @bind="request.ContactEmail" placeholder="john@example.com" />
+                        @if (string.IsNullOrWhiteSpace(request.ContactEmail) && showValidationErrors)
+                        {
+                            <div class="invalid-feedback d-block">Contact email is required.</div>
+                        }
                     </div>
                 </div>
             }
@@ -52,23 +65,35 @@
                 <div class="step-content">
                     <h5>Step 2: Business Details</h5>
                     <div class="mb-3">
-                        <label class="form-label">Proposed Business Address</label>
-                        <textarea class="form-control" @bind="businessAddress" rows="3"></textarea>
+                        <label class="form-label">Proposed Business Address <span class="text-danger">*</span></label>
+                        <textarea class="form-control @GetValidationClass(businessAddress)" @bind="businessAddress" rows="3"></textarea>
+                        @if (string.IsNullOrWhiteSpace(businessAddress) && showValidationErrors)
+                        {
+                            <div class="invalid-feedback d-block">Business address is required.</div>
+                        }
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Number of Employees</label>
-                        <input type="number" class="form-control" @bind="employeeCount" />
+                        <label class="form-label">Number of Employees <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control @(employeeCount <= 0 && showValidationErrors ? "is-invalid" : "")" @bind="employeeCount" />
+                        @if (employeeCount <= 0 && showValidationErrors)
+                        {
+                            <div class="invalid-feedback d-block">Please specify number of employees (minimum 1).</div>
+                        }
                     </div>
                 </div>
             }
             else if (currentStep == 3)
             {
                 <div class="step-content">
-                    <h5>Step 3: Document Uploads</h5>
-                    <p class="text-muted small">Upload your Business Registration and Identity Proof.</p>
+                    <h5>Step 3: Document Uploads <span class="text-danger">*</span></h5>
+                    <p class="text-muted small">Upload your Business Registration and Identity Proof. (Minimum 1 document required)</p>
                     
                     <div class="mb-4">
-                        <InputFile OnChange="HandleFileSelected" class="form-control" multiple />
+                        <InputFile OnChange="HandleFileSelected" class="@($"form-control {(showValidationErrors && !uploadedDocuments.Any() ? "is-invalid" : "")}")" multiple />
+                        @if (showValidationErrors && !uploadedDocuments.Any())
+                        {
+                            <div class="invalid-feedback d-block">At least one document is required.</div>
+                        }
                     </div>
 
                     @if (uploadedDocuments.Any())
@@ -95,6 +120,14 @@
                 </div>
             }
 
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger mt-3" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    @errorMessage
+                </div>
+            }
+
             <div class="mt-4 d-flex justify-content-between">
                 @if (currentStep > 1)
                 {
@@ -107,7 +140,7 @@
 
                 @if (currentStep < 3)
                 {
-                    <button class="btn btn-primary" @onclick="NextStep" disabled="@(!IsStepValid())">Next</button>
+                    <button class="btn btn-primary" @onclick="NextStep">Next</button>
                 }
                 else
                 {
@@ -127,16 +160,36 @@
 @code {
     private int currentStep = 1;
     private SubmitApplicationRequest request = new();
+    private bool showValidationErrors = false;
     private bool isSubmitting = false;
     
     // Step 2 specific fields (will be serialized to DataJson)
     private string businessAddress = "";
-    private int employeeCount = 0;
+    private int employeeCount = 1;
 
     private List<DocumentResponse> uploadedDocuments = new();
 
-    private void NextStep() => currentStep++;
-    private void PreviousStep() => currentStep--;
+    private void NextStep() 
+    {
+        if (IsStepValid())
+        {
+            showValidationErrors = false;
+            currentStep++;
+        }
+        else 
+        {
+            showValidationErrors = true;
+        }
+    }
+
+    private void PreviousStep() 
+    {
+        showValidationErrors = false;
+        currentStep--;
+    }
+
+    private string GetValidationClass(string? value) => 
+        showValidationErrors && string.IsNullOrWhiteSpace(value) ? "is-invalid" : "";
 
     private bool IsStepValid()
     {
@@ -145,29 +198,72 @@
                    !string.IsNullOrWhiteSpace(request.BusinessName) && 
                    !string.IsNullOrWhiteSpace(request.ContactEmail);
         
+        if (currentStep == 2)
+            return !string.IsNullOrWhiteSpace(businessAddress) && employeeCount > 0;
+
+        if (currentStep == 3)
+            return uploadedDocuments.Any();
+        
         return true;
     }
 
     private async Task HandleFileSelected(InputFileChangeEventArgs e)
     {
+        errorMessage = null;
         foreach (var file in e.GetMultipleFiles())
         {
-            var content = new MultipartFormDataContent();
-            var fileContent = new StreamContent(file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024));
-            content.Add(fileContent, "file", file.Name);
-
-            var response = await Http.PostAsync("api/uploads", content);
-            if (response.IsSuccessStatusCode)
+            try 
             {
-                var result = await response.Content.ReadFromJsonAsync<DocumentResponse>();
-                if (result != null)
+                var content = new MultipartFormDataContent();
+                var fileStream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+                var fileContent = new StreamContent(fileStream);
+                content.Add(fileContent, "file", file.Name);
+
+                var response = await Http.PostAsync("api/uploads", content);
+                if (response.IsSuccessStatusCode)
                 {
-                    uploadedDocuments.Add(result);
-                    request.DocumentIds.Add(result.Id);
-                    _ = StartPolling(); // Fire and forget polling
+                    var result = await response.Content.ReadFromJsonAsync<DocumentResponse>();
+                    if (result != null)
+                    {
+                        uploadedDocuments.Add(result);
+                        request.DocumentIds.Add(result.Id);
+                        showValidationErrors = false; // Reset validation error once a file is added
+                        _ = StartPolling(); // Fire and forget polling
+                    }
+                }
+                else 
+                {
+                    var errorText = await response.Content.ReadAsStringAsync();
+                    errorMessage = $"Failed to upload {file.Name}: {(string.IsNullOrEmpty(errorText) ? response.ReasonPhrase : ParseError(errorText))}";
                 }
             }
+            catch (Exception ex)
+            {
+                errorMessage = $"Error uploading {file.Name}: {ex.Message}";
+            }
         }
+        StateHasChanged();
+    }
+
+    private string ParseError(string raw)
+    {
+        try 
+        {
+            if (raw.TrimStart().StartsWith("{"))
+            {
+                using var doc = JsonDocument.Parse(raw);
+                if (doc.RootElement.TryGetProperty("errors", out var errors))
+                {
+                    var msgs = new List<string>();
+                    foreach (var prop in errors.EnumerateObject())
+                        foreach (var m in prop.Value.EnumerateArray()) msgs.Add(m.GetString() ?? "");
+                    return string.Join(" ", msgs);
+                }
+                if (doc.RootElement.TryGetProperty("title", out var t)) return t.GetString() ?? raw;
+            }
+            return raw;
+        }
+        catch { return raw; }
     }
 
     private bool isPolling = false;
@@ -211,23 +307,42 @@
         };
     }
 
+    private string? errorMessage;
+
     private async Task Submit()
     {
+        if (!IsStepValid())
+        {
+            showValidationErrors = true;
+            return;
+        }
+
         isSubmitting = true;
+        errorMessage = null;
         
         // Prepare JSON data
         var data = new { BusinessAddress = businessAddress, EmployeeCount = employeeCount };
         request.DataJson = System.Text.Json.JsonSerializer.Serialize(data);
 
-        var response = await Http.PostAsJsonAsync("api/applications", request);
-        if (response.IsSuccessStatusCode)
+        try 
         {
-            Navigation.NavigateTo("/operator");
+            var response = await Http.PostAsJsonAsync("api/applications", request);
+            if (response.IsSuccessStatusCode)
+            {
+                Navigation.NavigateTo("/operator");
+            }
+            else
+            {
+                errorMessage = $"Submission failed: {response.ReasonPhrase}. Please check your inputs.";
+            }
         }
-        else
+        catch (Exception ex)
+        {
+            errorMessage = $"A network error occurred: {ex.Message}";
+        }
+        finally 
         {
             isSubmitting = false;
-            // Handle error (not implemented for simplicity)
         }
     }
 }

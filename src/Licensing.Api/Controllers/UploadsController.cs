@@ -1,7 +1,9 @@
 using Licensing.Application.Interfaces;
+using Licensing.Application.DTOs;
 using Licensing.Domain.Entities;
 using Licensing.Domain.Constants;
 using Microsoft.AspNetCore.Http;
+using Licensing.Api.Models;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.IO;
@@ -23,27 +25,38 @@ public class UploadsController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Upload(IFormFile file)
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> Upload([FromForm] UploadRequest request)
     {
-        if (file == null || file.Length == 0)
-            return BadRequest("No file uploaded.");
-
-        // Fixed: Streaming file directly to storage service instead of loading into byte[]
-        using var stream = file.OpenReadStream();
-        var filePath = await _fileStorageService.SaveFileAsync(stream, file.FileName, file.ContentType);
-
-        var document = new Document
+        try 
         {
-            FileName = file.FileName,
-            FilePath = filePath,
-            ContentType = file.ContentType,
-            AIStatus = AIVerificationStatus.Pending // Using constant
-        };
+            var file = request?.File;
+            if (file == null || file.Length == 0)
+                return BadRequest("No file uploaded.");
 
-        _dbContext.Documents.Add(document);
-        await _dbContext.SaveChangesAsync();
+            // Stream file directly to storage service instead of loading into byte[]
+            using var stream = file.OpenReadStream();
+            var filePath = await _fileStorageService.SaveFileAsync(stream, file.FileName, file.ContentType);
 
-        return Ok(new { document.Id, document.FileName, document.AIStatus });
+            var document = new Document
+            {
+                FileName = file.FileName,
+                FilePath = filePath,
+                ContentType = file.ContentType,
+                AIStatus = AIVerificationStatus.Pending // Using constant
+            };
+
+            _dbContext.Documents.Add(document);
+            await _dbContext.SaveChangesAsync();
+
+            return Ok(new { document.Id, document.FileName, document.AIStatus });
+        }
+        catch (Exception ex)
+        {
+            // Log error (simulated)
+            Console.WriteLine($"Upload Error: {ex.Message}");
+            return StatusCode(500, $"Internal server error: {ex.Message}");
+        }
     }
 
     [HttpGet("{id}")]

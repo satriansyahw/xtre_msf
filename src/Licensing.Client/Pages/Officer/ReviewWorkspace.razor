@@ -96,7 +96,7 @@
                     <div class="card-body">
                         <h6>Add Field Feedback</h6>
                         <div class="input-group mb-3">
-                            <select class="form-select form-select-sm" @bind="newFeedback.FieldName">
+                            <select class="form-select form-select-sm @(showFeedbackError && string.IsNullOrEmpty(newFeedback.FieldName) ? "border-danger" : "")" @bind="newFeedback.FieldName">
                                 <option value="">Select field...</option>
                                 <option value="ApplicantName">Applicant Name</option>
                                 <option value="BusinessName">Business Name</option>
@@ -104,9 +104,13 @@
                                 <option value="BusinessAddress">Business Address</option>
                                 <option value="Documents">Documents</option>
                             </select>
-                            <input type="text" class="form-control form-control-sm w-50" placeholder="Comment" @bind="newFeedback.Comment" />
+                            <input type="text" class="form-control form-control-sm w-50 @(showFeedbackError && string.IsNullOrEmpty(newFeedback.Comment) ? "border-danger" : "")" placeholder="Comment" @bind="newFeedback.Comment" />
                             <button class="btn btn-sm btn-outline-primary" @onclick="AddFeedback">Add</button>
                         </div>
+                        @if (showFeedbackError && (string.IsNullOrEmpty(newFeedback.FieldName) || string.IsNullOrEmpty(newFeedback.Comment)))
+                        {
+                            <div class="text-danger small mb-2">Both field selection and comment are required to add feedback.</div>
+                        }
 
                         <hr />
 
@@ -142,7 +146,7 @@
 
                         <h6>Final Decision</h6>
                         <div class="mb-3">
-                            <label class="form-label small">Overall Internal Note</label>
+                            <label class="form-label small">Overall Internal Note <span class="text-danger">*</span></label>
                             <textarea class="form-control" rows="3" @bind="globalComment"></textarea>
                         </div>
 
@@ -196,10 +200,16 @@
         }
     }
 
+    private bool showFeedbackError = false;
     private async Task AddFeedback()
     {
-        if (string.IsNullOrEmpty(newFeedback.FieldName) || string.IsNullOrEmpty(newFeedback.Comment)) return;
-        
+        if (string.IsNullOrEmpty(newFeedback.FieldName) || string.IsNullOrEmpty(newFeedback.Comment))
+        {
+            showFeedbackError = true;
+            return;
+        }
+
+        showFeedbackError = false;
         var response = await Http.PostAsJsonAsync($"api/review/{Id}/feedback", newFeedback);
         if (response.IsSuccessStatusCode)
         {
@@ -217,6 +227,13 @@
         isSubmitting = true;
         errorMessage = "";
         
+        if (string.IsNullOrWhiteSpace(globalComment))
+        {
+            isSubmitting = false;
+            errorMessage = "Please provide an internal note for your decision.";
+            return;
+        }
+
         var request = new ReviewApplicationRequest
         {
             NewStatus = status,
@@ -231,8 +248,32 @@
         else
         {
             isSubmitting = false;
-            errorMessage = "Decision failed: " + await response.Content.ReadAsStringAsync();
+            var error = await response.Content.ReadAsStringAsync();
+            errorMessage = response.StatusCode == System.Net.HttpStatusCode.BadRequest 
+                ? ParseError(error) 
+                : "Decision failed: " + response.ReasonPhrase;
         }
+    }
+
+    private string ParseError(string raw)
+    {
+        try 
+        {
+            if (raw.TrimStart().StartsWith("{"))
+            {
+                using var doc = JsonDocument.Parse(raw);
+                if (doc.RootElement.TryGetProperty("errors", out var errors))
+                {
+                    var msgs = new List<string>();
+                    foreach (var prop in errors.EnumerateObject())
+                        foreach (var m in prop.Value.EnumerateArray()) msgs.Add(m.GetString() ?? "");
+                    return string.Join(" ", msgs);
+                }
+                if (doc.RootElement.TryGetProperty("title", out var t)) return t.GetString() ?? raw;
+            }
+            return raw;
+        }
+        catch { return raw; }
     }
 
     private string GetAIStatusBadgeClass(string status)

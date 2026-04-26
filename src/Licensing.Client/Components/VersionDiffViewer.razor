@@ -4,30 +4,63 @@
 <div class="version-diff-viewer mt-4">
     <div class="card shadow-sm">
         <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-            <h6 class="mb-0">Version Comparison</h6>
+            <h6 class="mb-0">Version History & Comparison</h6>
             <div class="btn-group btn-group-sm">
-                <button class="btn btn-outline-light" @onclick="() => showRaw = !showRaw">
+                <button class="btn btn-outline-light btn-sm" @onclick="() => showRaw = !showRaw">
                     @(showRaw ? "Show Side-by-Side" : "Show Raw JSON")
                 </button>
             </div>
         </div>
         <div class="card-body p-0">
-            @if (Snapshots == null || Snapshots.Count < 2)
+            @if (Snapshots == null || Snapshots.Count == 0)
             {
                 <div class="p-4 text-center text-muted">
-                    Not enough versions to compare. Only Version 1 exists.
+                    No version history available.
                 </div>
             }
             else
             {
                 <div class="row g-0">
-                    <div class="col-md-6 border-end">
-                        <div class="bg-light p-2 border-bottom small fw-bold">Version @PreviousVersion.Version (Original)</div>
-                        <pre class="diff-pre p-3 m-0">@GetFormattedJson(PreviousVersion.DataJson)</pre>
+                    <!-- Version Selector Sidebar -->
+                    <div class="col-md-3 border-end bg-light" style="max-height: 500px; overflow-y: auto;">
+                        <div class="p-2 border-bottom fw-bold small text-muted text-uppercase">Select Versions</div>
+                        <div class="list-group list-group-flush">
+                            @foreach (var s in Snapshots.OrderByDescending(x => x.Version))
+                            {
+                                <div class="list-group-item list-group-item-action d-flex flex-column gap-1 py-2">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="badge bg-secondary">V @s.Version</span>
+                                        <small class="text-muted" style="font-size: 0.7rem;">@s.CreatedAt.ToLocalTime().ToString("g")</small>
+                                    </div>
+                                    <div class="d-flex gap-2 mt-1">
+                                        <button class="btn btn-xs @(prevId == s.Id ? "btn-primary" : "btn-outline-primary") py-0 px-1" style="font-size: 0.7rem;" @onclick="() => prevId = s.Id">Base</button>
+                                        <button class="btn btn-xs @(currId == s.Id ? "btn-success" : "btn-outline-success") py-0 px-1" style="font-size: 0.7rem;" @onclick="() => currId = s.Id">Comp</button>
+                                    </div>
+                                    <div class="small text-muted" style="font-size: 0.7rem;">By: @s.SubmittedBy</div>
+                                </div>
+                            }
+                        </div>
                     </div>
-                    <div class="col-md-6">
-                        <div class="bg-light p-2 border-bottom small fw-bold">Version @CurrentVersion.Version (Current)</div>
-                        <pre class="diff-pre p-3 m-0">@GetFormattedJson(CurrentVersion.DataJson)</pre>
+
+                    <!-- Comparison Area -->
+                    <div class="col-md-9 d-flex flex-column" style="max-height: 500px;">
+                        @if (CurrentVersion == null || PreviousVersion == null)
+                        {
+                            <div class="p-5 text-center text-muted">Select "Base" and "Comp" versions from the list to compare changes.</div>
+                        }
+                        else
+                        {
+                            <div class="row g-0 flex-grow-1 overflow-auto">
+                                <div class="col-md-6 border-end">
+                                    <div class="bg-primary bg-opacity-10 p-2 border-bottom small fw-bold text-primary">Version @PreviousVersion.Version (Base)</div>
+                                    <pre class="diff-pre p-3 m-0">@GetFormattedJson(PreviousVersion.DataJson)</pre>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="bg-success bg-opacity-10 p-2 border-bottom small fw-bold text-success">Version @CurrentVersion.Version (Comparison)</div>
+                                    <pre class="diff-pre p-3 m-0">@GetFormattedJson(CurrentVersion.DataJson)</pre>
+                                </div>
+                            </div>
+                        }
                     </div>
                 </div>
             }
@@ -38,9 +71,14 @@
 <style>
     .diff-pre {
         font-size: 0.8rem;
-        max-height: 300px;
-        overflow-y: auto;
-        background-color: #f8f9fa;
+        white-space: pre-wrap;
+        word-break: break-all;
+    }
+    .btn-xs {
+        padding: 0.1rem 0.3rem;
+        font-size: 0.75rem;
+        line-height: 1;
+        border-radius: 0.2rem;
     }
 </style>
 
@@ -48,9 +86,21 @@
     [Parameter] public List<ApplicationSnapshotResponse>? Snapshots { get; set; }
     
     private bool showRaw = false;
+    private Guid? prevId;
+    private Guid? currId;
 
-    private ApplicationSnapshotResponse CurrentVersion => Snapshots?.OrderByDescending(s => s.Version).FirstOrDefault() ?? new();
-    private ApplicationSnapshotResponse PreviousVersion => Snapshots?.OrderByDescending(s => s.Version).Skip(1).FirstOrDefault() ?? new();
+    protected override void OnParametersSet()
+    {
+        if (Snapshots != null && Snapshots.Count > 0)
+        {
+            var ordered = Snapshots.OrderByDescending(s => s.Version).ToList();
+            if (currId == null) currId = ordered[0].Id;
+            if (prevId == null && ordered.Count > 1) prevId = ordered[1].Id;
+        }
+    }
+
+    private ApplicationSnapshotResponse? CurrentVersion => Snapshots?.FirstOrDefault(s => s.Id == currId);
+    private ApplicationSnapshotResponse? PreviousVersion => Snapshots?.FirstOrDefault(s => s.Id == prevId);
 
     private string GetFormattedJson(string json)
     {

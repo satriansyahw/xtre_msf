@@ -12,7 +12,9 @@ public class LocalFileStorageService : IFileStorageService
 
     public LocalFileStorageService(IConfiguration configuration)
     {
-        _storagePath = configuration["FileStoragePath"] ?? "App_Data/Uploads";
+        var path = configuration["FileStoragePath"] ?? "App_Data/Uploads";
+        _storagePath = Path.GetFullPath(path);
+        
         if (!Directory.Exists(_storagePath))
         {
             Directory.CreateDirectory(_storagePath);

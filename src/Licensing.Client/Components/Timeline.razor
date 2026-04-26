@@ -1,0 +1,59 @@
+@using Licensing.Domain.Entities
+@using Licensing.Domain.Enums
+
+<div class="timeline">
+    @if (AuditLogs == null || !AuditLogs.Any())
+    {
+        <p class="text-muted small">No history recorded yet.</p>
+    }
+    else
+    {
+        @foreach (var log in AuditLogs.OrderByDescending(l => l.Timestamp))
+        {
+            <div class="timeline-item pb-3 position-relative ps-4">
+                <div class="timeline-marker position-absolute start-0 translate-middle-x rounded-circle @GetStatusColor(log.NewStatus)" style="width: 12px; height: 12px; left: 0; top: 5px;"></div>
+                <div class="timeline-content">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="fw-bold small text-primary">@log.NewStatus</span>
+                        <span class="text-muted" style="font-size: 0.7rem;">@log.Timestamp.ToLocalTime().ToString("g")</span>
+                    </div>
+                    <div class="small text-muted mb-1">
+                        <i class="bi bi-person-circle me-1"></i> @log.ActorRole: @log.ActorName
+                    </div>
+                    @if (!string.IsNullOrEmpty(log.Comment))
+                    {
+                        <div class="p-2 bg-light border rounded small mt-1">
+                            @log.Comment
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    }
+</div>
+
+<style>
+    .timeline {
+        border-left: 2px solid #dee2e6;
+        margin-left: 6px;
+    }
+    .timeline-item:last-child {
+        border-left: 2px solid transparent;
+        margin-left: -2px;
+    }
+</style>
+
+@code {
+    [Parameter] public List<AuditLog>? AuditLogs { get; set; }
+
+    private string GetStatusColor(string status)
+    {
+        return status switch
+        {
+            "Approved" => "bg-success",
+            "Rejected" => "bg-danger",
+            "ApplicationReceived" => "bg-primary",
+            _ => "bg-warning"
+        };
+    }
+}

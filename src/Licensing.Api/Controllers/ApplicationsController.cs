@@ -56,4 +56,25 @@ public class ApplicationsController : ControllerBase
             return NotFound();
         }
     }
+
+    [HttpGet("notifications")]
+    public async Task<IActionResult> GetNotifications([FromQuery] string persona)
+    {
+        var notifications = await _applicationService.GetNotificationsAsync(persona);
+        return Ok(notifications);
+    }
+
+    [HttpPost("notifications/read-all")]
+    public async Task<IActionResult> MarkAllAsRead([FromQuery] string persona)
+    {
+        await _applicationService.MarkNotificationsAsReadAsync(persona);
+        return Ok();
+    }
+
+    [HttpPost("notifications/{id}/read")]
+    public async Task<IActionResult> MarkAsRead(Guid id)
+    {
+        await _applicationService.MarkNotificationAsReadAsync(id);
+        return Ok();
+    }
 }

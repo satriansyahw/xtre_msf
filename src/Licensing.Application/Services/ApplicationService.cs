@@ -66,6 +66,9 @@ public class ApplicationService : IApplicationService
         _dbContext.ApplicationSnapshots.Add(snapshot);
 
         await _dbContext.SaveChangesAsync();
+        
+        await AddNotificationAsync(application.Id, $"New application {application.ReferenceNumber} submitted by {application.ApplicantName}", "Officer");
+        
         return application.Id;
     }
 
@@ -143,6 +146,12 @@ public class ApplicationService : IApplicationService
 
         _dbContext.Feedbacks.Add(feedback);
         await _dbContext.SaveChangesAsync();
+
+        var app = await _dbContext.Applications.FindAsync(applicationId);
+        if (app != null)
+        {
+            await AddNotificationAsync(applicationId, $"New feedback provided for your application {app.ReferenceNumber}", "Operator");
+        }
     }
 
     public async Task SubmitReviewAsync(Guid applicationId, ReviewApplicationRequest request)
@@ -175,6 +184,11 @@ public class ApplicationService : IApplicationService
         }
 
         await _dbContext.SaveChangesAsync();
+
+        if (app != null)
+        {
+            await AddNotificationAsync(applicationId, $"Your application {app.ReferenceNumber} status has been updated to {request.NewStatus}", "Operator");
+        }
     }
 
     public async Task<List<ApplicationSnapshotResponse>> GetSnapshotsAsync(Guid applicationId)
@@ -257,6 +271,63 @@ public class ApplicationService : IApplicationService
             f.UpdatedAt = DateTime.UtcNow;
         }
 
+        await _dbContext.SaveChangesAsync();
+
+        await AddNotificationAsync(applicationId, $"Application {app.ReferenceNumber} has been resubmitted", "Officer");
+    }
+
+    public async Task<List<NotificationResponse>> GetNotificationsAsync(string persona)
+    {
+        return await _dbContext.Notifications
+            .Where(n => n.Persona == persona)
+            .OrderByDescending(n => n.CreatedAt)
+            .Select(n => new NotificationResponse
+            {
+                Id = n.Id,
+                ApplicationId = n.ApplicationId,
+                Message = n.Message,
+                Persona = n.Persona,
+                IsRead = n.IsRead,
+                CreatedAt = n.CreatedAt
+            })
+            .ToListAsync();
+    }
+
+    public async Task MarkNotificationsAsReadAsync(string persona)
+    {
+        var notifications = await _dbContext.Notifications
+            .Where(n => n.Persona == persona && !n.IsRead)
+            .ToListAsync();
+
+        foreach (var n in notifications)
+        {
+            n.IsRead = true;
+            n.UpdatedAt = DateTime.UtcNow;
+        }
+
+        await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task MarkNotificationAsReadAsync(Guid notificationId)
+    {
+        var notification = await _dbContext.Notifications.FindAsync(notificationId);
+        if (notification != null)
+        {
+            notification.IsRead = true;
+            notification.UpdatedAt = DateTime.UtcNow;
+            await _dbContext.SaveChangesAsync();
+        }
+    }
+
+    private async Task AddNotificationAsync(Guid applicationId, string message, string persona)
+    {
+        _dbContext.Notifications.Add(new Notification
+        {
+            ApplicationId = applicationId,
+            Message = message,
+            Persona = persona,
+            IsRead = false
+        });
         await _dbContext.SaveChangesAsync();
     }
 }
